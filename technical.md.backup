@@ -1,0 +1,407 @@
+# Roadmap Técnico Detallado - Proyecto NFT Kukuxumusu
+
+## 📋 RESUMEN EJECUTIVO DEL ENTREGABLE MVP (1 SEMANA)
+
+### Capacidades del Producto Final
+- **Conexión de Wallet**: Integración con MetaMask y WalletConnect para interacción con la blockchain
+- **Arquitectura Cross-Chain**: NFTs minteados en Story Protocol, pagos gestionados en Base
+- **Smart Contract NFT (Story)**: Contrato ERC-721 verificado en Story Protocol para la creación y gestión de NFTs
+- **Smart Contract de Pagos (Base)**: Sistema de pagos multi-token (VTN, ETH, USDT) y gestión de subastas
+- **Sistema de Subastas**: Mecanismo para pujar por NFTs durante un periodo determinado con listado de bidders (en Base)
+- **Compra por Ganador**: Proceso automatizado cross-chain para que el ganador de la subasta reciba el NFT
+- **Galería de NFTs**: Exploración completa de los NFTs ya minteados/comprados con filtros y búsqueda
+- **Panel Administrativo**: Dashboard protegido para que el equipo de Kukuxumusu pueda subir nuevos NFTs
+- **Visualización del Saldo**: Dashboard público que muestra el balance de la treasury y estadísticas
+- **Almacenamiento Descentralizado**: Todas las imágenes y metadatos almacenados en IPFS vía Pinata
+
+### Stack Tecnológico
+- **Blockchain (NFTs)**: Story Protocol - Smart Contract ERC-721 para minteo de NFTs
+- **Blockchain (Pagos)**: Base - Smart Contract para pagos multi-token y subastas
+- **Tokens de Pago Aceptados**: VTN, ETH (nativo), USDT (ERC-20)
+- **Frontend**: Next.js + TypeScript + Tailwind CSS
+- **Web3**: Integración con wagmi/viem para conexión multi-chain de wallets
+- **Backend/Relayer**: Servicio Node.js que conecta eventos de Base con Story Protocol
+- **Storage**: IPFS/Pinata para imágenes y metadatos
+- **Hosting**: AWS EC2 con Docker para frontend y backend/relayer
+
+### Entregables Técnicos
+- Smart contract NFT desplegado y verificado en Story Protocol mainnet
+- Smart contract de Pagos desplegado y verificado en Base mainnet
+- Backend/Relayer para comunicación cross-chain entre Base y Story
+- Frontend responsive desplegado en dominio personalizado con soporte multi-chain
+- Sistema de subida de NFTs para administradores
+- Documentación técnica completa
+- Código fuente en repositorio GitHub
+
+### Limitaciones del MVP
+- Sin funcionalidades DAO (previsto para Fase 2)
+- Panel administrativo con funciones básicas
+- Sin integración con marketplaces externos
+- Sin auditoría completa de smart contracts (solo review básica)
+- Explore con filtros básicos (versión avanzada en Fase 2)
+- Sin herramientas de análisis avanzado de datos
+- Monitoreo básico (sin sistema completo de alertas)
+
+### Gestión Económica y Transparencia
+- **Treasury Wallet (Base)**: Implementación de wallet multisig dedicada en Base para recibir todos los fondos de ventas en VTN, ETH y USDT
+- **Dashboard Público**: Página pública que muestra en tiempo real el número de NFTs vendidos y balance de la treasury en Base
+- **Smart Contracts Verificados**: Código de ambos contratos (Base y Story) verificados en sus respectivos exploradores de bloques
+- **Función withdraw**: Sólo la wallet autorizada de Kukuxumusu podrá retirar los fondos acumulados en Base
+- **Royalties**: Configuración de royalties del 5-10% en ventas secundarias que se envían automáticamente a la treasury
+- **Transparencia Cross-Chain**: Todos los eventos de pagos en Base están vinculados con los NFTs minteados en Story
+
+### Arquitectura de la Aplicación
+
+#### Frontend (Single Page Application)
+- **Tecnología**: Next.js + React + TypeScript + Tailwind CSS
+- **Estructura**: Una única aplicación web con múltiples páginas/secciones
+- **Páginas principales**:
+  - Home: Presentación del proyecto y destacados
+  - Subastas/Mint: Interfaz para múltiples subastas simultáneas y compra directa
+  - Explore: Galería completa con filtros y búsqueda
+  - Dashboard Público: Estadísticas y transparencia
+  - Dashboard Admin: Panel protegido para gestión (acceso restringido)
+
+#### Backend - Arquitectura Cross-Chain
+
+**Smart Contract de Pagos (Base)**
+- Gestión de pagos multi-token (VTN, ETH, USDT)
+- Sistema de múltiples subastas simultáneas con tiempo límite
+- Registro de bidders y determinación de ganadores
+- Treasury multisig para custodia de fondos
+- Eventos on-chain: `PaymentReceived`, `AuctionCreated`, `BidPlaced`, `AuctionWon`
+- Cada puja (bid) se registrará como un evento on-chain para garantizar total transparencia y verificabilidad
+- Los eventos `BidPlaced` contendrán toda la información de la puja (bidder, monto, timestamp, tokenId)
+
+**Smart Contract NFT (Story Protocol)**
+- Minteo de NFTs ERC-721 con metadatos en IPFS
+- Control de acceso: solo el backend/relayer autorizado puede mintear
+- Función de transferencia automática al ganador de subasta
+- Royalties configurados para ventas secundarias
+
+**Backend/Relayer (Node.js)**
+- Escucha eventos de pagos exitosos en Base (`PaymentReceived`, `AuctionWon`)
+- Ejecuta mint automático de NFT en Story Protocol
+- Transfiere NFT al comprador/ganador
+- Mantiene registro de transacciones cross-chain
+- API para consultar estado de transacciones pendientes
+
+**API Services**
+- Integrados en Next.js mediante API routes
+- Endpoints para consultar datos cross-chain
+- Cache de metadata de NFTs
+
+**Almacenamiento**:
+  - IPFS/Pinata: Imágenes y metadatos de NFTs
+    - Imágenes originales: 2000x2000px (1:1), formato PNG/JPG, máx 10MB, con transparencia opcional
+    - Versiones optimizadas automáticamente generadas:
+      - Thumbnail (galería): 400x400px
+      - Media (cards): 800x800px
+      - Full (vista detalle): 2000x2000px original
+    - Metadatos: Estándar ERC-721 JSON con atributos/traits
+- Base de datos: Información auxiliar, caché y tracking cross-chain
+
+#### Despliegue
+- **Frontend/Backend/Relayer**: AWS EC2 con contenedores Docker
+- **Containerización**: Docker + Docker Compose para entornos consistentes
+- **CI/CD**: Pipeline automatizado para build y deploy de contenedores
+- **Smart Contract de Pagos**: Desplegado y verificado en Base mainnet
+- **Smart Contract NFT**: Desplegado y verificado en Story Protocol mainnet
+- **Relayer Service**: Servicio persistente con reintentos automáticos para garantizar mints
+- **Dominio**: Configuración de dominio personalizado con SSL/TLS
+- **Escalabilidad**: Posibilidad de escalar horizontalmente con múltiples instancias EC2
+- **Monitoring**: CloudWatch para tracking de eventos cross-chain y alertas
+
+## 🚀 SEMANA 1 - DESARROLLO MVP
+
+### DÍA 1 (LUNES) - FUNDAMENTOS BASE
+
+#### Blockchain Development (Smart Contracts)
+**Smart Contract Único ERC-721 Base**
+- [ ] Crear contrato base NFT con herencia ERC-721 (contrato único para toda la colección)
+- [ ] Implementar función mint básica con controls
+- [ ] Añadir función setBaseURI para metadatos
+- [ ] Implementar ownership controls (onlyOwner)
+- [ ] Configurar treasury wallet como destinatario de fondos
+- [ ] Crear testing unitario básico para funciones core
+
+**Testing y Validación Inicial**
+- [ ] Deploy contrato en Base testnet
+- [ ] Verificar contrato en block explorer
+- [ ] Test manual de funciones básicas
+- [ ] Configurar wallet de testing con fondos
+
+#### Frontend Development
+**Setup Proyecto Frontend**
+- [ ] Configurar Next.js con TypeScript
+- [ ] Setup Tailwind CSS y configuración de theme
+- [ ] Instalar y configurar wagmi + viem para Web3
+- [ ] Crear estructura de componentes base (Header, Footer, Layout)
+
+**Conexión Blockchain Base**
+- [ ] Implementar conexión wallet (MetaMask)
+- [ ] Crear hook para interactuar con contrato
+- [ ] Setup providers y configuración de redes
+- [ ] Test básico de lectura de contrato
+
+#### Infraestructura (IPFS/Storage)
+**Setup IPFS**
+- [ ] Configurar cuenta Pinata y API keys
+- [ ] Crear funciones de upload a IPFS
+- [ ] Implementar generación de metadata JSON según estándar ERC-721
+- [ ] Configurar validación de imágenes originales (2000x2000px, formato PNG/JPG, máx 10MB)
+- [ ] Implementar generación automática de versiones optimizadas (400x400px, 800x800px)
+- [ ] Test de subida de imagen básica y verificación de calidad
+
+**📋 Entregables Día 1:**
+- Smart contract funcional en testnet
+- Frontend con conexión wallet working
+- IPFS configurado y probado
+
+---
+
+### DÍA 2 (MARTES) - FUNCIONALIDAD CORE DE MINT
+
+#### Blockchain Development
+**Completar Funcionalidades del Smart Contract Único**
+- [ ] Añadir función pausable/unpausable al contrato principal
+- [ ] Implementar withdraw funds para owner
+- [ ] Añadir controls de max supply y precio
+- [ ] Implementar función setPrice para admin
+- [ ] Desarrollar sistema de múltiples subastas simultáneas con tiempo límite (dentro del mismo contrato)
+- [ ] Crear funciones para registrar y listar bidders en cada subasta
+- [ ] Implementar lógica de determinación de ganador
+- [ ] Testing completo de todas las funciones
+
+**Funciones Admin Avanzadas del Contrato Único**
+- [ ] Crear función batch mint para admin (añadir múltiples NFTs a la colección)
+- [ ] Añadir eventos importantes on-chain (Minted, PriceChanged, AuctionCreated, BidPlaced)
+- [ ] Asegurar que cada puja quede registrada como evento inmutable en la blockchain
+- [ ] Implementar función emergency pause
+- [ ] Documentar todas las funciones del contrato
+
+#### Frontend Development
+**Página de Mint y Subastas UI**
+- [ ] Crear componente MintPage con diseño
+- [ ] Implementar preview de NFT antes del mint con visualización a tamaño completo (2000x2000px)
+- [ ] Añadir validaciones de frontend (balance, conexión)
+- [ ] Crear componente de selección de cantidad
+- [ ] Diseñar interfaz de subastas con contador
+- [ ] Implementar formulario para realizar pujas
+- [ ] Crear listado de bidders en tiempo real
+
+**Integración Mint y Subastas Completa**
+- [ ] Conectar UI con funciones de smart contract
+- [ ] Implementar estados de transacción (pending, success, error)
+- [ ] Añadir feedback visual para cada estado
+- [ ] Implementar manejo de errores de Web3
+- [ ] Integrar sistema de subastas con el frontend
+- [ ] Desarrollar lógica para actualizar pujas en tiempo real
+- [ ] Implementar notificaciones para ganadores de subastas
+- [ ] Testing responsive en dispositivos móviles
+
+**📋 Entregables Día 2:**
+- Sistema de mint funcional end-to-end
+- Sistema de subastas con listado de bidders implementado
+- Interface de usuario pulida para mint y subastas
+- Validaciones y manejo de errores completo
+- Proceso automatizado para compra por ganador de subasta
+
+---
+
+### DÍA 3 (MIÉRCOLES) - DASHBOARD ADMINISTRATIVO
+
+#### Frontend Development - Dashboard Admin
+**Interface Admin Base**
+- [ ] Crear página admin con autenticación por wallet
+- [ ] Implementar protección de rutas admin
+- [ ] Crear formulario de subida de NFTs
+- [ ] Implementar preview de imágenes antes de subir con verificación de dimensiones (2000x2000px)
+
+**Funcionalidad Upload NFTs**
+- [ ] Integrar formulario con IPFS upload
+- [ ] Crear generación automática de metadata JSON con estándar ERC-721 completo
+- [ ] Implementar validación de formatos de imagen (2000x2000px, PNG/JPG, máx 10MB)
+- [ ] Configurar generación automática de versiones optimizadas para galería y cards
+- [ ] Añadir progress bars para uploads
+
+#### Blockchain Development - Soporte Admin
+**Optimización y Auditoría**
+- [ ] Optimizar gas consumption del contrato
+- [ ] Añadir natspec documentation completa
+- [ ] Crear script de deployment automatizado
+- [ ] Preparar contrato para review de seguridad básica
+
+**Testing Integración Dashboard**
+- [ ] Test completo del flow admin de subida
+- [ ] Verificar metadata correcta en IPFS
+- [ ] Test de mint de NFTs recién añadidos
+- [ ] Validar que URIs se generan correctamente
+
+**📋 Entregables Día 3:**
+- Dashboard admin completamente funcional
+- Sistema de upload de NFTs working
+- Metadatos generados correctamente en IPFS
+
+---
+
+### DÍA 4 (JUEVES) - PÁGINA EXPLORE Y GALERÍA
+
+#### Frontend Development - Página Explore
+**Base de Galería**
+- [ ] Crear layout de galería responsive
+- [ ] Implementar componente NFTCard individual con imágenes de resolución media (800x800px)
+- [ ] Conectar con datos del blockchain (tokenURI)
+- [ ] Crear sistema de loading para imágenes con diferentes resoluciones (thumbnails 400x400px para galería)
+- [ ] Implementar sección de estadísticas de ventas y transparencia
+
+**Funcionalidades Avanzadas Explore**
+- [ ] Implementar filtros por atributos/traits
+- [ ] Añadir búsqueda por token ID u owner
+- [ ] Crear sistema de paginación eficiente
+- [ ] Implementar lazy loading para performance
+- [ ] Añadir estados de loading y error handling
+
+#### Blockchain Development - APIs y Utilities
+**Backend Support**
+- [ ] Crear utility functions para parsear metadata
+- [ ] Implementar función getAllTokens optimizada
+- [ ] Crear endpoints para servir metadata si es necesario
+- [ ] Optimizar queries al blockchain para rendimiento
+
+**📋 Entregables Día 4:**
+- Página Explore completamente funcional
+- Sistema de filtros y búsqueda operativo
+- Performance optimizada para carga de NFTs
+
+---
+
+### DÍA 5 (VIERNES) - TESTING, DEPLOY Y FINALIZACIÓN
+
+#### Testing Completo
+**Frontend Testing:**
+- [ ] Test end-to-end de todos los user flows
+- [ ] Test de responsive design en diferentes dispositivos
+- [ ] Test de performance y optimización de carga
+- [ ] Validación de accesibilidad básica
+
+**Backend Testing:**
+- [ ] Test completo de todas las funciones del contrato
+- [ ] Test de integración con IPFS
+- [ ] Validación de metadata generada
+- [ ] Test de gas costs y optimización
+
+#### Deploy a Producción
+**Blockchain Deploy:**
+- [ ] Deploy final del contrato en Base mainnet
+- [ ] Verificar contrato en block explorer
+- [ ] Configurar ownership correctamente
+- [ ] Configurar treasury wallet multisig
+- [ ] Crear backup seguro de private keys
+
+**Frontend/Backend Deploy:**
+- [ ] Build optimizado para producción
+- [ ] Crear imágenes Docker para frontend y servicios
+- [ ] Setup de Docker Compose para entorno de producción
+- [ ] Deploy en AWS EC2 con configuración de seguridad
+- [ ] Configurar dominio personalizado con Route 53
+- [ ] Setup SSL/TLS con certificados gestionados
+- [ ] Configuración de balanceador de carga si es necesario
+- [ ] Implementar dashboard público de transparencia
+
+#### Testing Final y Documentación
+- [ ] Test completo en mainnet con fondos reales
+- [ ] Verificación de todas las funcionalidades
+- [ ] Crear documentación técnica para handover
+- [ ] Preparar demo para presentación final
+- [ ] Setup monitoring y alertas básicas
+- [ ] Configurar auto-scaling para EC2 si es necesario
+- [ ] Implementar backup automatizado de la base de datos
+
+**📋 Entregables Día 5:**
+- MVP completamente deployed en producción
+- Documentación técnica completa
+- Sistema listo para demo con Kukuxumusu
+
+---
+
+## ✅ CHECKLIST FINAL DE ENTREGABLES
+
+### Smart Contract Único ✅
+- [ ] Contrato ERC-721 único deployed y verificado en Base mainnet
+- [ ] Funciones mint, pause, withdraw, setPrice implementadas
+- [ ] Sistema de múltiples subastas simultáneas con tiempo límite y registro de bidders (en el mismo contrato)
+- [ ] Proceso automatizado para la compra del ganador de la subasta
+- [ ] Sistema de ownership y access controls
+- [ ] Funcionalidad para NFTs con venta directa y NFTs para subasta
+- [ ] Testing unitario exhaustivo (>90% coverage)
+- [ ] Documentación técnica del contrato
+- [ ] Treasury wallet multisig configurada
+- [ ] Implementación de transparencia en ventas
+- [ ] Configuración de royalties para mercado secundario
+- [ ] Almacenamiento del historial de subastas y pujas como eventos on-chain para total transparencia
+
+### Frontend Application ✅
+- [ ] Conexión multi-wallet (MetaMask, WalletConnect)
+- [ ] Página de subastas con visualización de múltiples subastas activas y listado de bidders en tiempo real
+- [ ] Interface para realizar pujas con contador de tiempo
+- [ ] Notificaciones para ganadores de subastas
+- [ ] Página explore con filtros y búsqueda
+- [ ] Dashboard admin protegido y funcional
+- [ ] Diseño responsive para todos los dispositivos
+- [ ] Estados de loading, error y success
+- [ ] Dashboard público de transparencia con estadísticas de ventas
+- [ ] Visualización del balance de la treasury wallet
+- [ ] Historial de subastas pasadas
+
+### Backend & Infrastructure ✅
+- [ ] Integración IPFS con Pinata para storage
+- [ ] Sistema de upload de imágenes y generación de metadata
+- [ ] APIs para obtener datos de NFTs
+- [ ] Sistema de autenticación admin por wallet
+
+### Deploy & Operations ✅
+- [ ] Aplicación dockerizada y deployed en AWS EC2
+- [ ] Configuración de seguridad de AWS implementada
+- [ ] Dominio personalizado con Route 53
+- [ ] SSL/TLS configurado y funcionando
+- [ ] Backup de keys y configuraciones críticas
+- [ ] Monitoring básico con CloudWatch
+- [ ] Documentación de deploy y mantenimiento
+- [ ] Procedimientos de escalado y recuperación
+
+---
+
+## 🎯 CRITERIOS DE ÉXITO MVP
+
+### Funcionalidad ✅
+- [ ] Cualquier usuario puede conectar wallet y participar en subastas
+- [ ] Sistema de múltiples subastas simultáneas funciona correctamente con tiempo límite
+- [ ] Listado de bidders se actualiza en tiempo real con datos verificables on-chain
+- [ ] Proceso de compra automatizado para el ganador de la subasta
+- [ ] Admin puede subir nuevos NFTs vía dashboard
+- [ ] Los NFTs aparecen correctamente en la página explore
+- [ ] Metadata se almacena correctamente en IPFS
+- [ ] Sistema de precios y controls funciona
+- [ ] Treasury wallet recibe correctamente los fondos de ventas
+- [ ] Dashboard de transparencia muestra datos precisos y actualizados
+- [ ] Solo wallets autorizadas pueden retirar fondos
+- [ ] Historial de subastas y pujas accesible y verificable on-chain mediante eventos
+
+### Experiencia de Usuario ✅
+- [ ] Proceso de mint simple y claro (< 3 clics)
+- [ ] Feedback claro en cada paso del proceso
+- [ ] Diseño mobile-first responsive
+- [ ] Tiempo de carga < 3 segundos
+- [ ] Manejo elegante de errores
+
+### Técnico ✅
+- [ ] Cero bugs críticos en producción
+- [ ] Contrato optimizado para gas
+- [ ] Frontend optimizado para performance
+- [ ] Contenedores Docker optimizados
+- [ ] Código bien documentado
+- [ ] Testing coverage adecuado
+- [ ] Configuración de CI/CD para despliegue automático
+
+**🚀 ¿Listo para comenzar el desarrollo?**

@@ -1,9 +1,9 @@
 'use client'
 
 import { QueryClientProvider } from '@tanstack/react-query'
-import { WagmiProvider } from '@reown/appkit/wagmi'
-import { AppKitProvider } from '@reown/appkit/react'
-import { queryClient, wagmiConfig, appKitConfig } from '@/lib/wallet-config'
+import { WagmiProvider } from 'wagmi'
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
+import { queryClient, config } from '@/lib/wallet-config'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -12,10 +12,10 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={wagmiConfig}>
-        <AppKitProvider config={appKitConfig}>
+      <WagmiProvider config={config}>
+        <RainbowKitProvider>
           {children}
-        </AppKitProvider>
+        </RainbowKitProvider>
       </WagmiProvider>
     </QueryClientProvider>
   )

@@ -79,21 +79,57 @@
 - Automatic transfer function to auction winner
 - Configured royalties for secondary sales
 
-**Backend/Relayer (Go)**
-- Service written in Go using go-ethereum (Geth)
-- Listens for successful payment events on Base (`PaymentReceived`, `AuctionWon`)
-- Executes automatic NFT mint on Story Protocol
-- Transfers NFT to buyer/winner
-- Maintains cross-chain transaction log
-- REST API for querying pending transaction status
-- Goroutines for listening to multiple simultaneous events
-- Persistent queue system with PostgreSQL/SQLite
+**Backend/Relayer Service (Go) - Critical Cross-Chain Operations**
+- **Purpose**: Autonomous service for cross-chain transaction execution (Base → Story)
+- **Language**: Go using go-ethereum (Geth) - chosen for performance and native blockchain support
+- **Deployment**: Standalone service running 24/7 on AWS EC2 (separate from Next.js)
+- **Responsibilities**:
+  - Listens for payment events on Base (`PaymentReceived`, `AuctionWon`) using WebSocket/HTTP polling
+  - Executes automatic NFT mint transactions on Story Protocol when payment confirmed
+  - Transfers minted NFTs to buyer/winner addresses
+  - Maintains persistent cross-chain transaction queue with PostgreSQL/SQLite
+  - Implements retry logic with exponential backoff for failed mints
+  - Provides REST API for monitoring relayer status and pending transactions
+- **Why Go?**: High performance, excellent concurrency (goroutines), native blockchain libraries, runs as system service
 
-**API Services**
-- Integrated in Next.js through API routes
-- Endpoints for querying cross-chain data
-- NFT metadata cache
+**Next.js API Routes - Frontend/User-Facing Data**
+- **Purpose**: Serve data to the React frontend for user interface
+- **Language**: TypeScript (Next.js App Router API routes)
+- **Deployment**: Integrated with Next.js frontend on AWS EC2
+- **Responsibilities**:
+  - Query and aggregate data from Base and Story Protocol for display
+  - Cache NFT metadata from IPFS to reduce load times
+  - Provide endpoints for gallery/explore page (NFT listings with filters)
+  - Aggregate auction data and bidder lists from Base
+  - Cross-chain data correlation (match payments on Base with NFTs on Story)
+  - Optional: Proxy requests to Go relayer for status updates
+- **Why Next.js?**: Direct integration with frontend, serverless functions, easy caching, TypeScript type safety
 
+**Key Difference**:
+- **Go Relayer = Write Operations** (execute blockchain transactions automatically)
+- **Next.js API = Read Operations** (serve data to users, no transaction execution)
+
+**Architecture Diagram**:
+```
+┌─────────────────────────────────────┐
+│  Go Relayer (Port 8080)             │
+│  - Listens to Base events           │
+│  - Executes mints on Story          │
+│  - Persistent queue                 │
+└─────────────────────────────────────┘
+           ↕ (optional)
+┌─────────────────────────────────────┐
+│  Next.js API (Port 3000/api)        │
+│  - Gallery data                     │
+│  - Metadata cache                   │
+│  - Cross-chain aggregation          │
+└─────────────────────────────────────┘
+           ↕
+┌─────────────────────────────────────┐
+│  Next.js Frontend (React)           │
+│  - User interface                   │
+└─────────────────────────────────────┘
+```
 **Storage**:
   - IPFS/Pinata: Images and NFT metadata
     - Original images: 2000x2000px (1:1), PNG/JPG format, max 10MB, with optional transparency
@@ -120,29 +156,52 @@
 ### DAY 1 (MONDAY) - BASE FOUNDATIONS
 
 #### Blockchain Development (Smart Contracts)
-**Payment Smart Contract (Base)**
-- [?] Create payment contract with multi-token support (VTN, ETH, USDT) - *Already developed*
-- [?] Implement direct payment function with ERC-20 token validation - *Already developed*
-- [?] Configure multisig treasury wallet as fund recipient - *Already developed*
-- [?] Add withdraw function for ERC-20 tokens and native ETH - *Already developed*
-- [?] Implement events: `PaymentReceived`, `DirectPurchase` - *Already developed*
-- [?] Create basic unit testing for multi-token payments - *No testnet available*
+**Payment Smart Contract (Base) - ✅ 100% COMPLETED**
+Based on `KukuxumusuPayment_ABI.json`, the contract includes:
+- [✅] Multi-token payment support (native ETH, ERC-20 tokens like VTN, USDT)
+- [✅] Direct purchase function (`directPurchase`) with multi-token support
+- [✅] Complete auction system:
+  - `createAuction` - Create auctions with token whitelist and min prices
+  - `placeBid` - Place bids with any allowed token
+  - `finalizeAuction` - End auctions and determine winner
+  - `getAuctionBids` - Query all bids for an auction
+  - Anti-sniping protection with automatic time extension
+- [✅] Treasury management (`treasury` address, `setTreasury`)
+- [✅] Multi-token withdraw (`withdraw`) for owner
+- [✅] Refund system (`withdrawRefund`, `getPendingRefund`)
+- [✅] Access control (Ownable pattern)
+- [✅] Emergency pause functionality (`pause`, `unpause`)
+- [✅] Price management per NFT per token (`setPrice`, `prices`)
+- [✅] Token whitelist (`setAllowedPaymentToken`, `allowedPaymentTokens`)
+- [✅] NFT contract whitelist (`setAllowedNFTContract`, `allowedNFTContracts`)
+- [✅] Complete event system: `PaymentReceived`, `DirectPurchase`, `AuctionCreated`, `BidPlaced`, `AuctionWon`, `AuctionFinalized`, etc.
 
-**NFT Smart Contract (Story Protocol)**
-- [?] Create ERC-721 contract on Story Protocol - *Already developed*
-- [?] Implement mint function with access control (only authorized relayer) - *Already developed*
-- [?] Add setBaseURI function for IPFS metadata - *Already developed*
-- [?] Implement ownership controls (onlyOwner) - *Already developed*
-- [?] Configure royalties for secondary sales - *Already developed*
-- [?] Create basic unit testing for mint - *No testnet available*
+**NFT Factory Contract (Story Protocol) - ✅ 100% COMPLETED**
+Based on `KukuxumusuNFTFactory_ABI.json`, the contract includes:
+- [✅] Factory pattern for creating NFT collections
+- [✅] `createCollection` - Deploy new ERC-721 collections with custom config
+- [✅] Collection management (`getTotalCollections`, `getCollection`, `getCollectionByAddress`)
+- [✅] Royalty configuration per collection (EIP-2981)
+- [✅] Collection name uniqueness validation (`isCollectionNameAvailable`)
+- [✅] Access control (Ownable pattern)
+- [✅] Emergency pause functionality
+- [✅] Events: `CollectionCreated`, `CollectionUpdated`
 
-**Initial Testing and Validation**
-- [?] Deploy Payment contract on Base testnet - *No testnet available*
-- [?] Deploy NFT contract on Story testnet - *No testnet available*
-- [?] Verify both contracts on their respective block explorers
-- [?] Manual test of multi-token payments on Base - *No testnet available*
-- [?] Manual test of authorized mint on Story - *No testnet available*
-- [?] Configure testing wallets with funds on both networks - *No testnet available*
+**Smart Contract Status**
+- [✅] Both contracts fully developed with complete ABIs
+- [✅] **NFT Factory deployed on Story Protocol:** `0x75bf7b1DD6b3a666F18c7784B78871C429E92C71`
+  - Owner: `0x090378a9c80c5E1Ced85e56B2128c1e514E75357`
+  - Deployer: `0x0e60B83F83c5d2684acE779dea8A957e91D02475`
+- [✅] **Payment Contract deployed on Base:** `0x75bf7b1DD6b3a666F18c7784B78871C429E92C71`
+  - Owner: `0x090378a9c80c5E1Ced85e56B2128c1e514E75357`
+  - Treasury: `0x090378a9c80c5E1Ced85e56B2128c1e514E75357`
+  - Deployer: `0x0e60B83F83c5d2684acE779dea8A957e91D02475`
+- [✅] Deployment status: **COMPLETED SUCCESSFULLY**
+- [ ] Verify both contracts on block explorers (Story + Base)
+- [ ] Configure allowed payment tokens (VTN, USDT addresses on Base)
+- [ ] Create first collection via NFT Factory
+- [ ] Set initial NFT prices
+- [ ] Plan mainnet deployment after testing
 
 #### Frontend Development
 **Frontend Project Setup**
@@ -153,11 +212,14 @@
 - [✅] Create base component structure (Header, Footer, Layout) - *Completed*
 
 **Multi-Chain Blockchain Connection**
-- [ ] Implement multi-chain wallet connection (MetaMask, WalletConnect)
-- [ ] Create hooks for interacting with contracts on Base and Story
-- [ ] Setup providers and configuration for both networks (Base + Story)
-- [ ] Implement automatic network switch according to context
-- [ ] Basic test of reading from both contracts
+- [✅] Implement multi-chain wallet connection (MetaMask, WalletConnect) - *RainbowKit 2.2.8 configured with SSR fix*
+- [✅] Create hooks for interacting with contracts on Base and Story - *useContract.ts with full ABIs*
+- [✅] Setup providers and configuration for both networks (Base + Story) - *Wagmi 2.17.5 + Viem 2.37.9 configured*
+- [✅] Implement automatic network switch according to context - *RainbowKit includes network switcher*
+- [⚠️] Basic test of reading from both contracts - *UI implemented but NOT tested with real contracts yet*
+- [✅] Fix hydration errors in SSR - *Client-only rendering for wallet components*
+- [✅] Import ABIs from JSON files - *Complete ABIs loaded from KukuxumusuPayment_ABI.json and KukuxumusuNFTFactory_ABI.json*
+- [✅] Clean up duplicate configuration files - *Removed web3-config.ts and rainbowkit-config.ts*
 
 #### Backend/Relayer Development
 **Backend Relayer Setup (Go)**
@@ -178,10 +240,13 @@
 - [ ] Test basic image upload and quality verification
 
 **📋 Day 1 Deliverables:**
-- [?] Functional Payment smart contract on Base testnet - *Already developed, no testnet available*
-- [?] Functional NFT smart contract on Story testnet - *Already developed, no testnet available*
+- [✅] Functional Payment smart contract on Base - *Deployed at 0x75bf...C71*
+- [✅] Functional NFT Factory on Story Protocol - *Deployed at 0x75bf...C71*
 - [ ] Backend/Relayer configured and listening events
-- [🔄] Frontend with multi-chain wallet connection working - *Next.js + Web3 setup completed, connection pending*
+- [✅] Frontend with multi-chain wallet connection working - *RainbowKit 2.2.8 + 4 networks (Base/Story mainnet & testnet)*
+- [✅] Contract interaction hooks implemented - *usePaymentContract & useNftContract with full ABIs*
+- [⚠️] UI components for contract data - *ContractData.tsx implemented but needs testing with deployed contracts*
+- [✅] Fix all configuration issues - *Cleaned duplicate configs, fixed ABIs encoding, SSR hydration*
 - [ ] IPFS configured and tested
 
 ---
@@ -189,24 +254,13 @@
 ### DAY 2 (TUESDAY) - CORE MINT FUNCTIONALITY
 
 #### Blockchain Development
-**Complete Payment Smart Contract (Base)**
-- [ ] Add pausable/unpausable function to payment contract
-- [ ] Implement multi-token withdraw funds for owner
-- [ ] Add controls for max supply and prices per token
-- [ ] Implement setPrice function for admin (VTN, ETH, USDT)
-- [ ] Develop system of multiple simultaneous auctions with time limit
-- [ ] Create functions to register and list bidders in each auction
-- [ ] Implement winner determination logic
-- [ ] Add events: `AuctionCreated`, `BidPlaced`, `AuctionWon`
-- [?] Complete testing of all functions on Base - *No testnet available*
-
-**Complete NFT Smart Contract (Story)**
-- [ ] Create batch mint function for relayer (mint multiple NFTs)
-- [ ] Implement automatic transfer function to buyer
-- [ ] Add function to update authorized relayer
-- [ ] Implement emergency pause function
-- [ ] Add events: `NFTMinted`, `BatchMinted`
-- [?] Complete testing of mint and transfers on Story - *No testnet available*
+**Smart Contracts - ✅ Already 100% Complete**
+Both Payment (Base) and NFT Factory (Story) contracts are fully developed. Remaining tasks:
+- [ ] Deploy Payment contract to Base mainnet
+- [ ] Deploy NFT Factory to Story Protocol mainnet
+- [ ] Verify contracts on block explorers
+- [ ] Configure initial settings (treasury, allowed tokens, etc.)
+- [ ] Test all contract functions on mainnet with small amounts
 
 **Backend/Relayer - Cross-Chain Logic (Go)**
 - [ ] Implement listener for `PaymentReceived` event on Base with dedicated goroutine
@@ -265,12 +319,19 @@
 - [ ] Configure automatic generation of optimized versions for gallery and cards
 - [ ] Add progress bars for uploads
 
-#### Blockchain Development - Admin Support
-**Optimization and Audit**
-- [ ] Optimize gas consumption of both contracts (Base and Story)
-- [ ] Add complete natspec documentation to both contracts
-- [ ] Create automated deployment scripts for both networks
-- [ ] Prepare contracts for basic security review
+#### Blockchain Development - Deployment & Configuration
+**Contract Deployment (both networks)**
+- [ ] Deploy Payment contract to Base mainnet
+- [ ] Deploy NFT Factory to Story Protocol mainnet
+- [ ] Verify both contracts on block explorers
+- [ ] Configure Payment contract:
+  - Set treasury address (multisig)
+  - Whitelist payment tokens (VTN, USDT addresses)
+  - Set initial NFT prices per token
+- [ ] Configure NFT Factory:
+  - Create first Kukuxumusu collection
+  - Set royalty receiver and fee
+- [ ] Test end-to-end flow with small amounts
 
 **Backend/Relayer - Monitoring Dashboard (Go)**
 - [ ] Create REST endpoints in Go for querying cross-chain transaction status
@@ -443,8 +504,13 @@
 - [ ] Go relayer documentation and maintenance procedures
 
 ### Frontend Application 🔵
-- [ ] Multi-wallet multi-chain connection (MetaMask, WalletConnect)
-- [ ] Support for Base and Story Protocol with automatic switch
+- [✅] Multi-wallet multi-chain connection (MetaMask, WalletConnect) - *RainbowKit 2.2.8 with SSR fix*
+- [✅] Support for Base and Story Protocol with automatic switch - *4 networks configured*
+- [✅] Basic layout with Header and WalletButton - *Completed*
+- [⚠️] Contract data display components - *ContractData.tsx implemented but needs real contract addresses*
+- [✅] Hooks for reading contract data - *usePaymentContract & useNftContract coded*
+- [⚠️] Treasury wallet balance visualization on Base - *UI ready but needs deployed contract to test*
+- [✅] Responsive design for all devices - *Next.js 15 + Tailwind CSS 3.4*
 - [ ] Payment token selector (VTN, ETH, USDT)
 - [ ] Payment/auction page with multiple active auctions
 - [ ] Real-time bidder listing with used token
@@ -455,10 +521,8 @@
 - [ ] Explore page with Story Protocol data
 - [ ] Cross-chain visualization (NFT on Story + payment on Base)
 - [ ] Protected and functional admin dashboard
-- [✅] Responsive design for all devices - *Next.js + Tailwind setup completed*
 - [ ] Loading, error and success states for both networks
 - [ ] Public transparency dashboard with Base data
-- [ ] Treasury wallet balance visualization on Base
 - [ ] Past auction history with token information
 
 ### Backend & Infrastructure ✅

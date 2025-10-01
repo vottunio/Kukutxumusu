@@ -9,15 +9,22 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.2",
     "autoprefixer": "^10.4.21",
     "next": "15.5.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tailwindcss-animate": "^1.0.7",
+    "viem": "^2.37.9",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@types/bn.js": "^5.2.0",
     "@types/node": "^22.0.0",
+    "@types/pbkdf2": "^3.1.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/secp256k1": "^4.0.7",
     "eslint": "^9.0.0",
     "eslint-config-next": "15.5.4",
     "postcss": "^8.4.49",

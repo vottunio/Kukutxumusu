@@ -148,8 +148,8 @@
 **Frontend Project Setup**
 - [✅] Configure Next.js with TypeScript - *Completed*
 - [✅] Setup Tailwind CSS and theme configuration - *Completed*
-- [ ] Install and configure wagmi + viem for multi-chain Web3
-- [ ] Configure support for Base and Story Protocol
+- [✅] Install and configure Web3 moderno (WalletConnect v2 + viem) - *Completed*
+- [✅] Configure support for Base and Story Protocol - *Completed*
 - [✅] Create base component structure (Header, Footer, Layout) - *Completed*
 
 **Multi-Chain Blockchain Connection**
@@ -181,7 +181,7 @@
 - [?] Functional Payment smart contract on Base testnet - *Already developed, no testnet available*
 - [?] Functional NFT smart contract on Story testnet - *Already developed, no testnet available*
 - [ ] Backend/Relayer configured and listening events
-- [✅] Frontend with multi-chain wallet connection working - *Next.js setup completed, Web3 pending*
+- [🔄] Frontend with multi-chain wallet connection working - *Next.js + Web3 setup completed, connection pending*
 - [ ] IPFS configured and tested
 
 ---

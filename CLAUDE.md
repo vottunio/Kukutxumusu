@@ -34,9 +34,11 @@ This is a cross-chain NFT marketplace project for Kukuxumusu, a Spanish design b
 - **Hosting**: AWS EC2 with Docker containerization
 
 ### Backend/Relayer
-- **Framework**: Node.js + TypeScript
-- **Libraries**: ethers.js/viem for blockchain interactions
-- **Database**: For transaction queue and cross-chain tracking
+- **Language**: Go
+- **Libraries**: go-ethereum (Geth) for blockchain interactions
+- **Database**: PostgreSQL or SQLite for transaction queue and cross-chain tracking
+- **Concurrency**: Goroutines for simultaneous event listening
+- **API**: REST endpoints for status and monitoring
 - **Purpose**: Listens to payment events on Base and executes mints on Story
 
 ### Infrastructure
@@ -67,12 +69,18 @@ The project uses a **two-contract cross-chain architecture**:
 - Royalty configuration for secondary sales
 - Emits events: `NFTMinted`, `BatchMinted`
 
-**Backend/Relayer Service:**
-- Listens to payment events on Base
+**Backend/Relayer Service (Go):**
+- Written in Go using go-ethereum (Geth)
+- Listens to payment events on Base using goroutines
 - Automatically executes mints on Story Protocol when payment is confirmed
-- Queue system for pending transactions
-- Retry logic for failed mints
+- Queue system for pending transactions (PostgreSQL/SQLite)
+- Retry logic with exponential backoff for failed mints
+- Idempotency to prevent duplicate mints
 - Cross-chain transaction tracking
+- REST API for status queries
+- Health check endpoints
+- Structured logging (logrus/zap)
+- Optional Prometheus metrics
 - Monitoring dashboard for admins
 
 ### Frontend Application Structure
@@ -144,14 +152,15 @@ This is a rapid MVP with focus on core functionality:
 ### Day 1: Foundation
 - Payment contract (Base) with multi-token support
 - NFT contract (Story) with access-controlled minting
-- Backend/Relayer service setup
+- Backend/Relayer service setup in Go with go-ethereum
 - Frontend setup with Next.js + multi-chain Web3 integration
 - IPFS/Pinata configuration
 
 ### Day 2: Core Functionality
 - Complete payment contract with auctions and multi-token bidding (Base)
 - Complete NFT contract with batch minting (Story)
-- Relayer logic for cross-chain minting
+- Relayer logic in Go for cross-chain minting with goroutines
+- Event listeners with retry logic and idempotency
 - Payment and auction UI with token selector
 - Real-time bidder listing with token information
 - Cross-chain transaction tracking component
@@ -172,9 +181,11 @@ This is a rapid MVP with focus on core functionality:
 ### Day 5: Testing & Deployment
 - End-to-end cross-chain testing
 - Mainnet deployment of both contracts (Base + Story)
-- Relayer service deployment
-- Docker containerization for all services
+- Compile Go relayer binary for production
+- Relayer service deployment with Docker
+- Docker containerization for all services (Next.js + Go relayer)
 - AWS EC2 deployment with monitoring
+- CloudWatch + optional Prometheus/Grafana setup
 - Domain and SSL configuration
 
 ## Key Technical Considerations
@@ -194,11 +205,14 @@ This is a rapid MVP with focus on core functionality:
 - Secure RPC endpoint configuration
 
 ### Cross-Chain Reliability
-- Relayer with automatic retry logic
-- Transaction queue with persistent storage
+- Go relayer with goroutines for concurrent event processing
+- Automatic retry logic with exponential backoff
+- Transaction queue with persistent storage (PostgreSQL/SQLite)
 - Monitoring and alerting for failed mints
 - Idempotent mint operations (prevent duplicate mints)
 - Event-driven architecture for reliability
+- Health checks and graceful shutdown
+- Structured logging for debugging
 
 ### Performance
 - Lazy loading for NFT gallery

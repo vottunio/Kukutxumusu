@@ -1,34 +1,54 @@
-import { WalletButton } from '@/components/WalletButton'
-import { ContractData } from '@/components/ContractData'
+import Link from 'next/link'
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Kukuxumusu NFT
-            </h1>
-            <WalletButton />
-          </div>
-        </div>
-      </header>
-
       {/* Hero section */}
       <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-6">
-            Welcome to Kukuxumusu NFT
-          </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Your gateway to the world of digital collectibles
+        <div className="text-center mb-16">
+          <h1 className="text-6xl font-bold text-gray-900 mb-6">
+            Kukuxumusu NFT
+          </h1>
+          <p className="text-2xl text-gray-600 mb-8">
+            Cross-chain NFT marketplace powered by Base & Story Protocol
           </p>
+          <div className="flex gap-4 justify-center">
+            <Link
+              href="/explore"
+              className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+            >
+              Explore NFTs
+            </Link>
+            <Link
+              href="/admin"
+              className="px-8 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+            >
+              Admin Panel
+            </Link>
+          </div>
         </div>
 
-        {/* Contract Data */}
-        <ContractData />
+        {/* Featured Auction Section */}
+        <div className="max-w-4xl mx-auto mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
+            Active Auction
+          </h2>
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <p className="text-gray-500">No active auctions at the moment</p>
+            <p className="text-sm text-gray-400 mt-2">Check back soon!</p>
+          </div>
+        </div>
+
+        {/* Recently Minted NFTs */}
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
+            Recently Minted
+          </h2>
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <p className="text-gray-500">No NFTs minted yet</p>
+            <p className="text-sm text-gray-400 mt-2">Be the first to mint!</p>
+          </div>
+        </div>
       </div>
     </main>
   )

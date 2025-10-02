@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL para el relayer
+  postgres:
+    image: postgres:15-alpine
+    container_name: kukuxumusu-postgres
+    environment:
+      POSTGRES_DB: kukuxumusu
+      POSTGRES_USER: kukuxumusu
+      POSTGRES_PASSWORD: kukuxumusu_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - kukuxumusu-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kukuxumusu -d kukuxumusu"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para cache y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: kukuxumusu-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - kukuxumusu-network
+    command: redis-server --appendonly yes
+
+  # Adminer para administrar la base de datos (opcional)
+  adminer:
+    image: adminer:latest
+    container_name: kukuxumusu-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - kukuxumusu-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  kukuxumusu-network:
+    driver: bridge

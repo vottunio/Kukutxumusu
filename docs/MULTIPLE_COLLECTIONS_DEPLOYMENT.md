@@ -50,23 +50,23 @@ Paid: 0.06114162 ETH (2038054 gas * 30 gwei)
 
 ✅ Sequence #1 on 1315 | Total Paid: 0.06114162 ETH (2038054 gas * avg 30 gwei)            
 
-  
+  https://aeneid.storyscan.io/address/0xd9b3913250035D6a2621Cefc9574f7F8c6e5F2B7
 
 ## 💰 PAYMENT CONTRACT (Base)
 
 ### Contract Details
-- **Contract:** KukuxumusuPayment
-- **Address:** `0x8CDaEfE1079125A5BBCD5A75B977aC262C65413B`
-- **Network:** Base
-- **Owner:** `0x090378a9c80c5E1Ced85e56B2128c1e514E75357`
-- **Treasury:** `0x090378a9c80c5E1Ced85e56B2128c1e514E75357`
-- **Deployer:** `0x0e60B83F83c5d2684acE779dea8A957e91D02475`
 
-### Functionality
-- ✅ Multi-token payments (ETH, VTN, USDT)
-- ✅ Auction system with anti-sniping
-- ✅ Support for multiple NFT collections
-- ✅ Cross-chain NFT references
-- ✅ Dynamic pricing per NFT
+==========================
 
----
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+##
+Start verification for (1) contracts
+Start verifying contract `0xCb214FAd13Da95E02f3C3883aE8Bcf6CdF186e80` deployed on base-sepolia
+EVM version: prague
+Compiler version: 0.8.30
+Optimizations:    200
+Constructor args: 000000000000000000000000090378a9c80c5e1ced85e56b2128c1e514e753570000000000000000000000000e60b83f83c5d2684ace779dea8a957e91d02475
+
+Submitting verification for [src/KukuxumusuPayment.sol:KukuxumusuPayment] 0xCb214FAd13Da95E02f3C3883aE8Bcf6CdF186e80.
+
+https://sepolia.basescan.org/address/0xCb214FAd13Da95E02f3C3883aE8Bcf6CdF186e80

@@ -4,7 +4,14 @@
       "Bash(dir:*)",
       "Bash(rm:*)",
       "Bash(powershell:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Bash(npm run build:*)",
+      "Bash(1)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

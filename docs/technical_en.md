@@ -140,6 +140,37 @@
     - Metadata: ERC-721 JSON standard with attributes/traits
 - Database: Auxiliary information, cache and cross-chain tracking
 
+
+Flujo correcto:
+Fase 1: Admin prepara (ANTES de la subasta)
+Admin Panel:
+├── Sube SOLO la imagen a Pinata → ipfs://QmImageHash
+└── Guarda este hash asociado al NFT ID
+Fase 2: Subasta ocurre
+Base Contract:
+├── createAuction(nftId: 5, duration, tokens...)
+├── Usuarios hacen bids (se guardan on-chain como eventos)
+└── Auction termina → ganador definido
+Fase 3: Backend genera metadata completo (DESPUÉS)
+Backend/Relayer:
+├── Detecta AuctionWon
+├── Lee todos los bids del contrato
+├── Crea metadata JSON completo:
+   {
+     "name": "Kukuxumusu #5",
+     "image": "ipfs://QmImageHash", ← de Fase 1
+     "description": "...",
+     "attributes": [...],
+     "auction_history": [todos los bids] ← de blockchain
+   }
+├── Sube este JSON a Pinata → ipfs://QmMetadataHash
+└── Mintea NFT con esta URI completa
+Entonces necesitas:
+Admin panel: Solo sube imagen + datos básicos → guarda relación nftId → imageHash
+Backend/Relayer: Genera metadata completo + sube a Pinata + mintea
+¿Modifico el UploadNFTForm para que solo suba la imagen y datos básicos (sin generar metadata final)
+
+
 #### Deployment
 - **Frontend/Backend/Relayer**: AWS EC2 with Docker containers
 - **Containerization**: Docker + Docker Compose for consistent environments

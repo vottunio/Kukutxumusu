@@ -1,0 +1,200 @@
+// Prisma schema for Kukuxumusu NFT Marketplace
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NFT metadata and information
+model NFT {
+  id          Int      @id @default(autoincrement())
+  tokenId     Int      @unique // Assigned token ID for the NFT contract
+  name        String
+  description String   @db.Text
+  collection  String   @default("Default")
+
+  // IPFS data
+  imageHash   String   // IPFS hash of the image (QmXXX...)
+  metadataHash String? // IPFS hash of complete metadata (generated after auction)
+
+  // Attributes/traits
+  attributes  Json     @default("[]") // Array of {trait_type, value}
+
+  // Status
+  status      NFTStatus @default(PENDING)
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  mintedAt    DateTime?
+
+  // Relations
+  auction     Auction?
+  bids        Bid[]
+  mintTransaction MintTransaction?
+
+  @@index([tokenId])
+  @@index([status])
+  @@index([collection])
+}
+
+enum NFTStatus {
+  PENDING      // Created, image uploaded, waiting for auction
+  AUCTIONING   // Auction is active
+  AUCTION_ENDED // Auction ended, waiting for mint
+  MINTING      // Mint transaction submitted
+  MINTED       // Successfully minted and transferred
+  FAILED       // Mint failed
+}
+
+// Auction information (synced with on-chain data)
+model Auction {
+  id              Int      @id @default(autoincrement())
+  auctionId       Int      @unique // On-chain auction ID from Payment contract
+  nftId           Int      @unique
+  nft             NFT      @relation(fields: [nftId], references: [id], onDelete: Cascade)
+
+  // Auction settings
+  startTime       DateTime
+  endTime         DateTime
+  duration        Int      // Duration in seconds
+
+  // Anti-sniping
+  extensionTime   Int      // Extension in seconds
+  triggerTime     Int      // Trigger window in seconds
+
+  // Allowed tokens and min prices
+  allowedTokens   Json     // Array of token addresses
+  minPrices       Json     // Array of min prices (in wei) corresponding to allowedTokens
+
+  // Winner information
+  winnerAddress   String?  // Wallet address of winner
+  winningToken    String?  // Token address used for winning bid
+  winningAmount   String?  // Amount in wei
+
+  // Status
+  status          AuctionStatus @default(PENDING)
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  bids            Bid[]
+
+  @@index([auctionId])
+  @@index([status])
+  @@index([startTime])
+  @@index([endTime])
+}
+
+enum AuctionStatus {
+  PENDING    // Created but not started
+  ACTIVE     // Currently accepting bids
+  ENDED      // Auction time finished
+  COMPLETED  // Winner determined and NFT minted
+  CANCELLED  // Auction cancelled
+}
+
+// Bid history (can be synced from on-chain events or stored directly)
+model Bid {
+  id            Int      @id @default(autoincrement())
+  auctionId     Int
+  auction       Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  nftId         Int
+  nft           NFT      @relation(fields: [nftId], references: [id], onDelete: Cascade)
+
+  // Bidder info
+  bidderAddress String
+
+  // Bid details
+  tokenAddress  String   // Token used for bid (ETH/VTN/USDT)
+  amount        String   // Amount in wei
+
+  // Transaction info
+  txHash        String   @unique
+  blockNumber   Int
+  timestamp     DateTime
+
+  // Status
+  isWinning     Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+
+  @@index([auctionId])
+  @@index([nftId])
+  @@index([bidderAddress])
+  @@index([timestamp])
+  @@index([txHash])
+}
+
+// Cross-chain mint transaction queue and tracking
+model MintTransaction {
+  id              Int      @id @default(autoincrement())
+  nftId           Int      @unique
+  nft             NFT      @relation(fields: [nftId], references: [id], onDelete: Cascade)
+
+  // Recipient
+  recipientAddress String  // Winner's address
+
+  // Transaction details
+  txHash          String?  @unique // Transaction hash on Story Protocol
+  blockNumber     Int?
+  gasUsed         String?
+
+  // Status and retry logic
+  status          MintStatus @default(PENDING)
+  attempts        Int      @default(0)
+  maxAttempts     Int      @default(3)
+  lastError       String?  @db.Text
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  submittedAt     DateTime?
+  confirmedAt     DateTime?
+
+  @@index([status])
+  @@index([recipientAddress])
+  @@index([txHash])
+}
+
+enum MintStatus {
+  PENDING      // Waiting in queue
+  PROCESSING   // Transaction being prepared
+  SUBMITTED    // Transaction sent to blockchain
+  CONFIRMED    // Transaction confirmed on-chain
+  FAILED       // Transaction failed
+  CANCELLED    // Mint cancelled
+}
+
+// Event log for relayer monitoring
+model EventLog {
+  id          Int      @id @default(autoincrement())
+
+  // Event details
+  eventType   String   // PaymentReceived, BidPlaced, AuctionEnded, NFTMinted, etc.
+  contractAddress String
+  txHash      String
+  blockNumber Int
+  logIndex    Int
+
+  // Event data
+  eventData   Json     // Raw event data
+
+  // Processing status
+  processed   Boolean  @default(false)
+  processedAt DateTime?
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+
+  @@unique([txHash, logIndex])
+  @@index([eventType])
+  @@index([processed])
+  @@index([blockNumber])
+}

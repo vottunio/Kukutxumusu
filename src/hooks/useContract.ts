@@ -5,15 +5,15 @@ import { useWallet } from './useWallet'
 import { baseMainnet, storyMainnet } from '@/lib/chains'
 
 // Importar ABIs completos
-import PaymentABI from '../../KukuxumusuPayment_ABI.json'
-import NFTFactoryABI from '../../KukuxumusuNFTFactory_ABI.json'
+import PaymentABI from '../../contracts/abis/KukuxumusuPayment_ABI.json'
+import NFTABI from '../../contracts/abis/KukuxumusuNFT_ABI.json'
 
-// Direcciones de contratos
-const PAYMENT_CONTRACT_ADDRESS = '0x75bf7b1DD6b3a666F18c7784B78871C429E92C71' as const // Base
-const NFT_FACTORY_ADDRESS = '0x75bf7b1DD6b3a666F18c7784B78871C429E92C71' as const // Story Protocol
+// Direcciones de contratos (Testnet)
+const PAYMENT_CONTRACT_ADDRESS = '0x8CDaEfE1079125A5BBCD5A75B977aC262C65413B' as const // Base
+const NFT_CONTRACT_ADDRESS = '0xd9b3913250035D6a2621Cefc9574f7F8c6e5F2B7' as const // Story Protocol
 
 export function usePaymentContract() {
-  const { address, isConnected } = useWallet()
+  const { isConnected } = useWallet()
 
   // Leer dirección del treasury
   const { data: treasuryAddress } = useReadContract({
@@ -66,11 +66,22 @@ export function usePaymentContract() {
 export function useNftContract() {
   const { isConnected } = useWallet()
 
-  // Leer total de colecciones del factory
-  const { data: totalCollections } = useReadContract({
-    address: NFT_FACTORY_ADDRESS,
-    abi: NFTFactoryABI,
-    functionName: 'getTotalCollections',
+  // Leer total de NFTs minteados
+  const { data: totalMinted } = useReadContract({
+    address: NFT_CONTRACT_ADDRESS,
+    abi: NFTABI,
+    functionName: 'totalMinted',
+    chainId: storyMainnet.id,
+    query: {
+      enabled: isConnected,
+    },
+  })
+
+  // Leer max supply
+  const { data: maxSupply } = useReadContract({
+    address: NFT_CONTRACT_ADDRESS,
+    abi: NFTABI,
+    functionName: 'maxSupply',
     chainId: storyMainnet.id,
     query: {
       enabled: isConnected,
@@ -78,7 +89,8 @@ export function useNftContract() {
   })
 
   return {
-    totalCollections,
-    contractAddress: NFT_FACTORY_ADDRESS,
+    totalMinted,
+    maxSupply,
+    contractAddress: NFT_CONTRACT_ADDRESS,
   }
 }

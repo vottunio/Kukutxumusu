@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 export function ContractData() {
-  const { isConnected, currentChain } = useWallet()
+  const { isConnected } = useWallet()
   const { treasuryBalance, contractAddress: paymentAddress } = usePaymentContract()
-  const { totalCollections, contractAddress: nftAddress } = useNftContract()
+  const { totalMinted, maxSupply, contractAddress: nftAddress } = useNftContract()
 
   if (!isConnected) {
     return (
@@ -51,20 +51,20 @@ export function ContractData() {
         </CardContent>
       </Card>
 
-      {/* NFT Factory Data */}
+      {/* NFT Contract Data */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            NFT Factory
+            NFT Contract
             <Badge variant="outline">Story Protocol</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <div>
-              <span className="text-sm text-muted-foreground">Total Collections:</span>
+              <span className="text-sm text-muted-foreground">Total Minted:</span>
               <p className="font-mono">
-                {totalCollections ? totalCollections.toString() : 'Loading...'}
+                {totalMinted !== undefined && totalMinted !== null ? `${totalMinted.toString()} / ${maxSupply?.toString() || '∞'}` : 'Loading...'}
               </p>
             </div>
             <div>

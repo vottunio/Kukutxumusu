@@ -17,6 +17,7 @@ interface BidFormProps {
   currentHighestBid: bigint
   currentHighestToken?: string
   onSuccess?: () => void
+  disabled?: boolean
 }
 
 interface TokenOption {
@@ -63,7 +64,7 @@ function TokenButton({
   )
 }
 
-export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onSuccess }: BidFormProps) {
+export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onSuccess, disabled = false }: BidFormProps) {
   const { address, isConnected } = useWallet()
   const allTokens = getTokensByNetwork('testnet')
   const [selectedToken, setSelectedToken] = useState<TokenOption | null>(null)
@@ -269,12 +270,19 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
             </div>
           )}
 
+          {/* Auction Ended Warning */}
+          {disabled && (
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-600 text-center">This auction has ended</p>
+            </div>
+          )}
+
           {/* Submit Button */}
           <Button
             type="submit"
             className="w-full"
             size="lg"
-            disabled={!isConnected || isApproving || isBidding || !bidAmount || !selectedToken}
+            disabled={disabled || !isConnected || isApproving || isBidding || !bidAmount || !selectedToken}
           >
             {!isConnected && 'Connect Wallet'}
             {isConnected && isApproving && 'Approving Token...'}

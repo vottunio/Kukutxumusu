@@ -11,11 +11,12 @@ const publicClient = createPublicClient({
 })
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    const auctionId = parseInt(params.id)
+    const auctionId = parseInt(id)
 
     if (isNaN(auctionId) || auctionId < 0) {
       return NextResponse.json(

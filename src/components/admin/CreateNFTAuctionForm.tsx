@@ -172,10 +172,10 @@ export function CreateNFTAuctionForm() {
       setDiscounts({ ...discounts, [tokenAddress]: '0' })
     }
   }
-
-  const handleMinPriceChange = (tokenAddress: string, value: string) => {
+/*
+  const _handleMinPriceChange = (tokenAddress: string, value: string) => {
     setMinPrices({ ...minPrices, [tokenAddress]: value })
-  }
+  }*/
 
   const handleDiscountChange = (tokenAddress: string, value: string) => {
     setDiscounts({ ...discounts, [tokenAddress]: value })

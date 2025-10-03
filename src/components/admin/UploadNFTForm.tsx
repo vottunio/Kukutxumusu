@@ -5,12 +5,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 
-interface NFTMetadata {
+/*interface NFTMetadata {
   name: string
   description: string
   image: string
   attributes: { trait_type: string; value: string }[]
-}
+}*/
 
 export function UploadNFTForm() {
   const [imageFile, setImageFile] = useState<File | null>(null)

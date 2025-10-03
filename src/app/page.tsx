@@ -117,14 +117,13 @@ export default function Home() {
 
                 {/* Right: Bid Form & Bidder List */}
                 <div className="space-y-6">
-                  {isActive && (
-                    <BidForm
-                      auctionId={currentAuctionId!}
-                      currentHighestBid={auction!.highestBid}
-                      currentHighestToken={auction!.highestBidToken}
-                      onSuccess={refetch}
-                    />
-                  )}
+                  <BidForm
+                    auctionId={currentAuctionId!}
+                    currentHighestBid={auction!.highestBid}
+                    currentHighestToken={auction!.highestBidToken}
+                    onSuccess={refetch}
+                    disabled={!isActive}
+                  />
                   <BidderList
                     bids={bids}
                     currentHighestBidder={auction!.highestBidder}

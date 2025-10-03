@@ -18,7 +18,7 @@ const AUCTION_CREATOR_ROLE = '0x' + Buffer.from('AUCTION_CREATOR_ROLE').toString
 type Tab = 'tokens' | 'roles' | 'config' | 'emergency'
 
 export function ContractAdminPanel() {
-  const { address, isConnected } = useWallet()
+  const {  isConnected } = useWallet()
   const [activeTab, setActiveTab] = useState<Tab>('tokens')
 
   const { writeContract, data: hash, isPending, error } = useWriteContract()
@@ -26,7 +26,7 @@ export function ContractAdminPanel() {
 
   // Token Management State
   const [tokenAddress, setTokenAddress] = useState('')
-  const [tokenPrice, setTokenPrice] = useState('')
+  //const [tokenPrice] = useState('')
   const [tokenAllowed, setTokenAllowed] = useState(true)
 
   // Role Management State
@@ -51,17 +51,6 @@ export function ContractAdminPanel() {
       abi: PaymentABI,
       functionName: 'setAllowedPaymentToken',
       args: [tokenAddress as `0x${string}`, tokenAllowed],
-      chainId: baseSepolia.id,
-    })
-  }
-
-  const handleSetPrice = async () => {
-    if (!tokenAddress || !tokenPrice) return
-    writeContract({
-      address: PAYMENT_CONTRACT_ADDRESS,
-      abi: PaymentABI,
-      functionName: 'setPrice',
-      args: [tokenAddress as `0x${string}`, BigInt(Math.floor(parseFloat(tokenPrice) * 1e18))],
       chainId: baseSepolia.id,
     })
   }

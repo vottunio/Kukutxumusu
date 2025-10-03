@@ -6,7 +6,7 @@
  */
 
 // Environment-based configuration
-const isTestnet = process.env.NEXT_PUBLIC_NETWORK_MODE === 'testnet'
+//const isTestnet = process.env.NEXT_PUBLIC_NETWORK_MODE === 'testnet'
 
 // List of authorized admin wallet addresses
 // NOTE: Same wallets will be used for both testnet and mainnet

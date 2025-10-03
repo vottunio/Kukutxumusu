@@ -141,7 +141,7 @@ export function useActiveAuction() {
  * Hook para obtener todas las subastas activas ordenadas por tiempo restante
  */
 export function useActiveAuctions() {
-  const { isConnected } = useWallet()
+  //const { isConnected } = useWallet()
   const { totalAuctions } = useActiveAuction()
 
   // Array de IDs de todas las subastas

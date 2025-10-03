@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL (staging)
+  postgres:
+    image: postgres:15-alpine
+    container_name: kukuxumusu-postgres-staging
+    environment:
+      POSTGRES_DB: kukuxumusu
+      POSTGRES_USER: kukuxumusu
+      POSTGRES_PASSWORD: kukuxumusu_staging
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    networks:
+      - kukuxumusu-staging-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kukuxumusu -d kukuxumusu"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para cache (staging)
+  redis:
+    image: redis:7-alpine
+    container_name: kukuxumusu-redis-staging
+    volumes:
+      - redis_staging_data:/data
+    networks:
+      - kukuxumusu-staging-network
+    command: redis-server --appendonly yes
+
+  # Frontend Next.js (staging)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kukuxumusu-frontend-staging
+    environment:
+      - NODE_ENV=staging
+      - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_staging@postgres:5432/kukuxumusu?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      # Solo variables públicas para Next.js
+      - NEXT_PUBLIC_BASE_RPC_URL=${NEXT_PUBLIC_BASE_RPC_URL}
+      - NEXT_PUBLIC_STORY_RPC_URL=${NEXT_PUBLIC_STORY_RPC_URL}
+      - NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=${NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS}
+      - NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=${NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}
+      - NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID}
+      - NEXT_PUBLIC_API_URL=https://staging.kukuxumusu.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kukuxumusu-staging-network
+    restart: unless-stopped
+
+  # Backend Go Relayer (staging)
+  relayer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kukuxumusu-relayer-staging
+    environment:
+      - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_staging@postgres:5432/kukuxumusu_relayer?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - BASE_RPC_URL=${BASE_RPC_URL}
+      - STORY_RPC_URL=${STORY_RPC_URL}
+      - PAYMENT_CONTRACT_ADDRESS=${PAYMENT_CONTRACT_ADDRESS}
+      - NFT_CONTRACT_ADDRESS=${NFT_CONTRACT_ADDRESS}
+      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
+      - PINATA_API_KEY=${PINATA_API_KEY}
+      - PINATA_SECRET=${PINATA_SECRET}
+      - ENVIRONMENT=staging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kukuxumusu-staging-network
+    restart: unless-stopped
+
+  # Nginx reverse proxy (staging)
+  nginx:
+    image: nginx:alpine
+    container_name: kukuxumusu-nginx-staging
+    ports:
+      - "8080:80"  # Puerto diferente para staging
+    volumes:
+      - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - relayer
+    networks:
+      - kukuxumusu-staging-network
+    restart: unless-stopped
+
+  # Adminer para administrar BD (staging)
+  adminer:
+    image: adminer:latest
+    container_name: kukuxumusu-adminer-staging
+    ports:
+      - "8081:8080"  # Puerto diferente para staging
+    depends_on:
+      - postgres
+    networks:
+      - kukuxumusu-staging-network
+
+volumes:
+  postgres_staging_data:
+  redis_staging_data:
+
+networks:
+  kukuxumusu-staging-network:
+    driver: bridge

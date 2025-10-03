@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL (producción)
+  postgres:
+    image: postgres:15-alpine
+    container_name: kukuxumusu-postgres-prod
+    environment:
+      POSTGRES_DB: kukuxumusu
+      POSTGRES_USER: kukuxumusu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Variable de entorno segura
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    networks:
+      - kukuxumusu-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kukuxumusu -d kukuxumusu"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis para cache (producción)
+  redis:
+    image: redis:7-alpine
+    container_name: kukuxumusu-redis-prod
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - kukuxumusu-prod-network
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    restart: unless-stopped
+
+  # Frontend Next.js (producción)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kukuxumusu-frontend-prod
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://kukuxumusu:${POSTGRES_PASSWORD}@postgres:5432/kukuxumusu?sslmode=disable
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      # Solo variables públicas para Next.js
+      - NEXT_PUBLIC_BASE_RPC_URL=${NEXT_PUBLIC_BASE_RPC_URL}
+      - NEXT_PUBLIC_STORY_RPC_URL=${NEXT_PUBLIC_STORY_RPC_URL}
+      - NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=${NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS}
+      - NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=${NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}
+      - NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID}
+      - NEXT_PUBLIC_API_URL=https://kukuxumusu.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kukuxumusu-prod-network
+    restart: unless-stopped
+
+  # Backend Go Relayer (producción)
+  relayer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kukuxumusu-relayer-prod
+    environment:
+      - DATABASE_URL=postgres://kukuxumusu:${POSTGRES_PASSWORD}@postgres:5432/kukuxumusu_relayer?sslmode=disable
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - BASE_RPC_URL=${BASE_RPC_URL}
+      - STORY_RPC_URL=${STORY_RPC_URL}
+      - PAYMENT_CONTRACT_ADDRESS=${PAYMENT_CONTRACT_ADDRESS}
+      - NFT_CONTRACT_ADDRESS=${NFT_CONTRACT_ADDRESS}
+      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
+      - PINATA_API_KEY=${PINATA_API_KEY}
+      - PINATA_SECRET=${PINATA_SECRET}
+      - ENVIRONMENT=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kukuxumusu-prod-network
+    restart: unless-stopped
+
+  # Nginx reverse proxy (producción)
+  nginx:
+    image: nginx:alpine
+    container_name: kukuxumusu-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - relayer
+    networks:
+      - kukuxumusu-prod-network
+    restart: unless-stopped
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+
+networks:
+  kukuxumusu-prod-network:
+    driver: bridge

@@ -1,35 +1,81 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CountdownTimer } from './CountdownTimer'
 import { Auction } from '@/hooks/useAuction'
 import { formatEther } from 'viem'
+import Image from 'next/image'
 
 interface AuctionCardProps {
   auction: Auction
   auctionId: number
 }
 
+interface NFTData {
+  name: string
+  imageUrl: string
+  description: string
+  collection: string
+}
+
 // Mapeo de direcciones de tokens a nombres
 const TOKEN_NAMES: { [key: string]: string } = {
   '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE': 'ETH',
+  '0x812BAe92A8A5BE95A68Be5653e565Fd469fE234E': 'VTN'
   // Agregar VTN y USDT cuando tengas las direcciones
 }
 
 export function AuctionCard({ auction, auctionId }: AuctionCardProps) {
+  const [nftData, setNftData] = useState<NFTData | null>(null)
+  const [loading, setLoading] = useState(true)
+
   const tokenName = TOKEN_NAMES[auction.highestBidToken] || 'Token'
   const hasValidBid = auction.highestBid > 0n
+
+  useEffect(() => {
+    const fetchNFTData = async () => {
+      try {
+        const response = await fetch(`/api/nft/${auction.nftId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setNftData(data.nft)
+        }
+      } catch (error) {
+        console.error('Error fetching NFT data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNFTData()
+  }, [auction.nftId])
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
-        {/* NFT Image Placeholder */}
-        <div className="aspect-square bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-          <div className="text-center text-white">
-            <p className="text-6xl font-bold mb-2">#{auction.nftId.toString()}</p>
-            <p className="text-xl opacity-80">Kukuxumusu NFT</p>
-          </div>
+        {/* NFT Image */}
+        <div className="aspect-square bg-gradient-to-br from-purple-400 to-pink-400 relative">
+          {loading ? (
+            <div className="flex items-center justify-center h-full text-white">
+              <p>Loading...</p>
+            </div>
+          ) : nftData?.imageUrl ? (
+            <Image
+              src={nftData.imageUrl}
+              alt={nftData.name}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-center text-white">
+              <div>
+                <p className="text-6xl font-bold mb-2">#{auction.nftId.toString()}</p>
+                <p className="text-xl opacity-80">Kukuxumusu NFT</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Auction Info */}
@@ -38,7 +84,7 @@ export function AuctionCard({ auction, auctionId }: AuctionCardProps) {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold text-gray-900">
-                Kukuxumusu #{auction.nftId.toString()}
+                {nftData?.name || `Kukuxumusu #${auction.nftId.toString()}`}
               </h3>
               <p className="text-sm text-gray-500">Auction #{auctionId}</p>
             </div>

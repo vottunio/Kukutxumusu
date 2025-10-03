@@ -2,10 +2,10 @@
 
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useState, useEffect } from 'react'
-import { baseMainnet } from '@/lib/chains'
+import { baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../contracts/abis/KukuxumusuPayment_ABI.json'
 
-const PAYMENT_CONTRACT_ADDRESS = '0x8CDaEfE1079125A5BBCD5A75B977aC262C65413B' as const
+const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
 
 // Dirección especial para ETH nativo
 const NATIVE_ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as const
@@ -98,7 +98,7 @@ export function usePlaceBid() {
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [PAYMENT_CONTRACT_ADDRESS, amount],
-        chainId: baseMainnet.id,
+        chainId: baseSepolia.id,
       })
 
       return true
@@ -111,11 +111,14 @@ export function usePlaceBid() {
 
   /**
    * Hacer una apuesta en una subasta
+   * Ahora requiere valueInUSD y firma del relayer
    */
   const placeBid = async (
     auctionId: number | bigint,
     tokenAddress: string,
-    amount: bigint
+    amount: bigint,
+    valueInUSD: bigint,
+    signature: `0x${string}`
   ) => {
     try {
       setIsBidding(true)
@@ -131,9 +134,11 @@ export function usePlaceBid() {
           BigInt(auctionId),
           tokenAddress as `0x${string}`,
           amount,
+          valueInUSD,
+          signature,
         ],
         value: isNativeETH ? amount : 0n, // Enviar ETH si es nativo
-        chainId: baseMainnet.id,
+        chainId: baseSepolia.id,
       })
 
       return true
@@ -147,11 +152,14 @@ export function usePlaceBid() {
   /**
    * Flujo completo: aprobar (si es necesario) y hacer bid
    * Nota: Para tokens ERC20, el usuario debe aprobar primero manualmente
+   * IMPORTANTE: Necesita obtener valueInUSD y signature del relayer antes de llamar
    */
   const placeBidWithApproval = async (
     auctionId: number | bigint,
     tokenAddress: string,
     amount: bigint,
+    valueInUSD: bigint,
+    signature: `0x${string}`,
     _ownerAddress: string
   ) => {
     try {
@@ -159,7 +167,7 @@ export function usePlaceBid() {
 
       // Si es ETH nativo, hacer bid directamente
       if (tokenAddress === NATIVE_ETH_ADDRESS) {
-        return await placeBid(auctionId, tokenAddress, amount)
+        return await placeBid(auctionId, tokenAddress, amount, valueInUSD, signature)
       }
 
       // Para tokens ERC20, primero aprobar
@@ -170,7 +178,7 @@ export function usePlaceBid() {
       }
 
       // Si ya se aprobó, hacer bid
-      return await placeBid(auctionId, tokenAddress, amount)
+      return await placeBid(auctionId, tokenAddress, amount, valueInUSD, signature)
     } catch (err: any) {
       setError(err.message || 'Error in bid process')
       return false

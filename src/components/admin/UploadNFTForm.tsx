@@ -97,12 +97,12 @@ export function UploadNFTForm() {
       const imageUrl = `ipfs://${imageHash}`
 
       // 2. Crear metadata JSON
-      const metadata: NFTMetadata = {
-        name: nftName,
-        description: nftDescription,
-        image: imageUrl,
-        attributes: attributes.filter(attr => attr.trait_type && attr.value),
-      }
+      // const metadata: NFTMetadata = {
+      //   name: nftName,
+      //   description: nftDescription,
+      //   image: imageUrl,
+      //   attributes: attributes.filter(attr => attr.trait_type && attr.value),
+      // }
 
       // 3. Upload metadata a IPFS/Pinata
       // const metadataUploadResponse = await fetch('/api/upload-metadata', {

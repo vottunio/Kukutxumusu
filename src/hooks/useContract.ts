@@ -2,15 +2,15 @@
 
 import { useReadContract } from 'wagmi'
 import { useWallet } from './useWallet'
-import { baseMainnet, storyMainnet } from '@/lib/chains'
+import { baseSepolia, storyTestnet } from '@/lib/chains'
 
 // Importar ABIs completos
 import PaymentABI from '../../contracts/abis/KukuxumusuPayment_ABI.json'
 import NFTABI from '../../contracts/abis/KukuxumusuNFT_ABI.json'
 
-// Direcciones de contratos (Testnet)
-const PAYMENT_CONTRACT_ADDRESS = '0x8CDaEfE1079125A5BBCD5A75B977aC262C65413B' as const // Base
-const NFT_CONTRACT_ADDRESS = '0xd9b3913250035D6a2621Cefc9574f7F8c6e5F2B7' as const // Story Protocol
+// Direcciones de contratos desde variables de entorno
+const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}` // Base Sepolia
+const NFT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS as `0x${string}` // Story Protocol
 
 export function usePaymentContract() {
   const { isConnected } = useWallet()
@@ -20,7 +20,7 @@ export function usePaymentContract() {
     address: PAYMENT_CONTRACT_ADDRESS,
     abi: PaymentABI,
     functionName: 'treasury',
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected,
     },
@@ -37,7 +37,7 @@ export function usePaymentContract() {
       outputs: [{ type: 'uint256' }]
     }],
     functionName: 'getBalance',
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected && !!treasuryAddress,
     },
@@ -48,7 +48,7 @@ export function usePaymentContract() {
     address: PAYMENT_CONTRACT_ADDRESS,
     abi: PaymentABI,
     functionName: 'auctionCounter',
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected,
     },
@@ -71,7 +71,7 @@ export function useNftContract() {
     address: NFT_CONTRACT_ADDRESS,
     abi: NFTABI,
     functionName: 'totalMinted',
-    chainId: storyMainnet.id,
+    chainId: storyTestnet.id,
     query: {
       enabled: isConnected,
     },
@@ -82,7 +82,7 @@ export function useNftContract() {
     address: NFT_CONTRACT_ADDRESS,
     abi: NFTABI,
     functionName: 'maxSupply',
-    chainId: storyMainnet.id,
+    chainId: storyTestnet.id,
     query: {
       enabled: isConnected,
     },

@@ -1,17 +1,17 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useWallet } from '@/hooks/useWallet'
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { baseMainnet } from '@/lib/chains'
+import { baseMainnet, baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../../contracts/abis/KukuxumusuPayment_ABI.json'
 import Image from 'next/image'
 import { getTokenArray, type NetworkMode } from '@/lib/tokens'
 
-const PAYMENT_CONTRACT_ADDRESS = '0x8CDaEfE1079125A5BBCD5A75B977aC262C65413B' as const
-const NFT_CONTRACT_ADDRESS = '0xd9b3913250035D6a2621Cefc9574f7F8c6e5F2B7' as const
+const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
+const NFT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS as `0x${string}`
 
 export function CreateNFTAuctionForm() {
   const { address, isConnected } = useWallet()
@@ -19,7 +19,7 @@ export function CreateNFTAuctionForm() {
 
   // Network mode
   const [networkMode, setNetworkMode] = useState<NetworkMode>('testnet')
-  const availableTokens = getTokenArray(networkMode)
+  const availableTokens = getTokenArray(networkMode).filter(token => token.address !== '')
 
   // Step 1: NFT Metadata
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -45,10 +45,69 @@ export function CreateNFTAuctionForm() {
   // Upload & Transaction state
   const [currentStep, setCurrentStep] = useState<'form' | 'uploading' | 'creating'>('form')
   const [uploadedImageHash, setUploadedImageHash] = useState<string | null>(null)
+  const [createdNftId, setCreatedNftId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const { writeContract, data: hash, isPending, error: txError } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+
+  // Handle transaction success
+  useEffect(() => {
+    if (isSuccess && hash && createdNftId) {
+      const updateNFTStatus = async () => {
+        try {
+          // Update NFT to AUCTIONING status
+          await fetch('/api/admin/update-nft-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nftId: createdNftId,
+              status: 'AUCTIONING',
+              txHash: hash,
+            }),
+          })
+
+          setSuccessMessage(`Auction created successfully! Transaction: ${hash}`)
+          setCurrentStep('form')
+
+          // Reset form after 5 seconds
+          setTimeout(() => {
+            resetForm()
+            setSuccessMessage(null)
+          }, 5000)
+        } catch (err) {
+          console.error('Error updating NFT status:', err)
+        }
+      }
+
+      updateNFTStatus()
+    }
+  }, [isSuccess, hash, createdNftId])
+
+  // Handle transaction failure
+  useEffect(() => {
+    if (txError && createdNftId) {
+      const markAsFailed = async () => {
+        try {
+          // Update NFT to FAILED status
+          await fetch('/api/admin/update-nft-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nftId: createdNftId,
+              status: 'FAILED',
+              errorMessage: txError.message,
+            }),
+          })
+        } catch (err) {
+          console.error('Error marking NFT as failed:', err)
+        }
+      }
+
+      markAsFailed()
+    }
+  }, [txError, createdNftId])
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -168,14 +227,18 @@ export function CreateNFTAuctionForm() {
 
       const { tokenId: assignedId, nftId } = await nftResponse.json()
       console.log('NFT created in database with tokenId:', assignedId, 'nftId:', nftId)
+      setCreatedNftId(nftId)
 
       // Step 3: Create auction on Base
       setCurrentStep('creating')
 
       // Calculate start time
-      let startTimeTimestamp = BigInt(Math.floor(Date.now() / 1000))
+      let startTimeTimestamp: bigint
       if (startTime === 'scheduled' && scheduledDate) {
         startTimeTimestamp = BigInt(Math.floor(new Date(scheduledDate).getTime() / 1000))
+      } else {
+        // For immediate start, send 0
+        startTimeTimestamp = BigInt(0)
       }
 
       const durationInSeconds = BigInt(Number(duration) * 3600)
@@ -200,7 +263,7 @@ export function CreateNFTAuctionForm() {
           extensionInSeconds,
           triggerInSeconds,
         ],
-        chainId: baseMainnet.id,
+        chainId: networkMode === 'testnet' ? baseSepolia.id : baseMainnet.id,
       })
     } catch (err: any) {
       console.error('Error:', err)
@@ -220,6 +283,8 @@ export function CreateNFTAuctionForm() {
     setStartTime('now')
     setScheduledDate('')
     setUploadedImageHash(null)
+    setCreatedNftId(null)
+    setError(null)
     setCurrentStep('form')
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -567,6 +632,38 @@ export function CreateNFTAuctionForm() {
               >
                 Create Another
               </Button>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 font-medium">{successMessage}</p>
+              {hash && (
+                <p className="text-sm text-green-600 mt-1 break-all">
+                  <a
+                    href={`https://basescan.org/tx/${hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-green-700"
+                  >
+                    View on BaseScan
+                  </a>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800">{error}</p>
+            </div>
+          )}
+
+          {txError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800">{txError.message}</p>
             </div>
           )}
 

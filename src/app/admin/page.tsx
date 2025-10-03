@@ -1,13 +1,38 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useAdmin } from '@/hooks/useAdmin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ContractData } from '@/components/ContractData'
+// import { ContractData } from '@/components/ContractData'
 import { AccessDenied } from '@/components/AccessDenied'
 import { CreateNFTAuctionForm } from '@/components/admin/CreateNFTAuctionForm'
 
 export default function AdminPage() {
   const { isAdmin, isConnected, address } = useAdmin()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Panel</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Loading...</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   // Not connected - ask to connect wallet
   if (!isConnected) {
@@ -90,12 +115,12 @@ export default function AdminPage() {
         </div>
 
         {/* Smart Contract Status - At the bottom */}
-        <div className="max-w-6xl mx-auto">
+        {/* <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Smart Contract Status
           </h2>
           <ContractData />
-        </div>
+        </div> */}
       </div>
     </main>
   )

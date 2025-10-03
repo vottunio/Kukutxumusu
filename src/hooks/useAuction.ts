@@ -2,10 +2,10 @@
 
 import { useReadContract } from 'wagmi'
 import { useWallet } from './useWallet'
-import { baseMainnet } from '@/lib/chains'
+import { baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../contracts/abis/KukuxumusuPayment_ABI.json'
 
-const PAYMENT_CONTRACT_ADDRESS = '0x8CDaEfE1079125A5BBCD5A75B977aC262C65413B' as const
+const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
 
 export interface Auction {
   nftContract: string
@@ -15,6 +15,7 @@ export interface Auction {
   highestBidder: string
   highestBidToken: string
   highestBid: bigint
+  highestBidValueUSD: bigint
   finalized: boolean
   antiSnipingExtension: bigint
   antiSnipingTrigger: bigint
@@ -24,6 +25,7 @@ export interface Bid {
   bidder: string
   token: string
   amount: bigint
+  valueInUSD: bigint
   timestamp: bigint
 }
 
@@ -39,7 +41,7 @@ export function useAuction(auctionId: number | bigint) {
     abi: PaymentABI,
     functionName: 'auctions',
     args: [BigInt(auctionId)],
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected && auctionId !== undefined,
       refetchInterval: 5000, // Actualizar cada 5 segundos
@@ -52,7 +54,7 @@ export function useAuction(auctionId: number | bigint) {
     abi: PaymentABI,
     functionName: 'getAuctionBids',
     args: [BigInt(auctionId)],
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected && auctionId !== undefined,
       refetchInterval: 5000, // Actualizar cada 5 segundos
@@ -68,9 +70,10 @@ export function useAuction(auctionId: number | bigint) {
     highestBidder: (auctionData as any)[4],
     highestBidToken: (auctionData as any)[5],
     highestBid: (auctionData as any)[6],
-    finalized: (auctionData as any)[7],
-    antiSnipingExtension: (auctionData as any)[8],
-    antiSnipingTrigger: (auctionData as any)[9],
+    highestBidValueUSD: (auctionData as any)[7],
+    finalized: (auctionData as any)[8],
+    antiSnipingExtension: (auctionData as any)[9],
+    antiSnipingTrigger: (auctionData as any)[10],
   } : null
 
   // Parsear lista de bids
@@ -78,6 +81,7 @@ export function useAuction(auctionId: number | bigint) {
     bidder: bid.bidder,
     token: bid.token,
     amount: bid.amount,
+    valueInUSD: bid.valueInUSD,
     timestamp: bid.timestamp,
   })) : []
 
@@ -115,7 +119,7 @@ export function useActiveAuction() {
     address: PAYMENT_CONTRACT_ADDRESS,
     abi: PaymentABI,
     functionName: 'auctionCounter',
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected,
     },
@@ -144,7 +148,7 @@ export function useIsTokenAllowedForAuction(auctionId: number | bigint, tokenAdd
     abi: PaymentABI,
     functionName: 'isTokenAllowedForAuction',
     args: [BigInt(auctionId), tokenAddress as `0x${string}`],
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected && auctionId !== undefined && !!tokenAddress,
     },
@@ -164,7 +168,7 @@ export function useAuctionMinPrice(auctionId: number | bigint, tokenAddress: str
     abi: PaymentABI,
     functionName: 'getAuctionMinPrice',
     args: [BigInt(auctionId), tokenAddress as `0x${string}`],
-    chainId: baseMainnet.id,
+    chainId: baseSepolia.id,
     query: {
       enabled: isConnected && auctionId !== undefined && !!tokenAddress,
     },

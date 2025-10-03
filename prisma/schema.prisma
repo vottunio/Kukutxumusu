@@ -70,11 +70,13 @@ model Auction {
   // Allowed tokens and min prices
   allowedTokens   Json     // Array of token addresses
   minPrices       Json     // Array of min prices (in wei) corresponding to allowedTokens
+  discounts       Json     // Array of discount percentages (in basis points) per token
 
   // Winner information
   winnerAddress   String?  // Wallet address of winner
   winningToken    String?  // Token address used for winning bid
   winningAmount   String?  // Amount in wei
+  winningValueUSD String?  // Winning bid value in USD (with 18 decimals)
 
   // Status
   status          AuctionStatus @default(PENDING)
@@ -114,6 +116,7 @@ model Bid {
   // Bid details
   tokenAddress  String   // Token used for bid (ETH/VTN/USDT)
   amount        String   // Amount in wei
+  valueInUSD    String   // USD value of the bid (with 18 decimals)
 
   // Transaction info
   txHash        String   @unique

@@ -70,3 +70,20 @@ Constructor args: 000000000000000000000000090378a9c80c5e1ced85e56b2128c1e514e753
 Submitting verification for [src/KukuxumusuPayment.sol:KukuxumusuPayment] 0xCb214FAd13Da95E02f3C3883aE8Bcf6CdF186e80.
 
 https://sepolia.basescan.org/address/0xCb214FAd13Da95E02f3C3883aE8Bcf6CdF186e80
+
+KukuxumusuPayment deployed at: 0xCb214FAd13Da95E02f3C3883aE8Bcf6CdF186e80
+Treasury: 0x090378a9c80c5E1Ced85e56B2128c1e514E75357
+Owner: 0x090378a9c80c5E1Ced85e56B2128c1e514E75357
+
+
+Relayer en Go, porque:
+Ya lo tienes para mintear después de la auction
+Puede manejar ambas cosas: firmar bids + mintear NFT
+Más performante para última hora de auction (muchos bids)
+Flujo completo:
+Usuario → Relayer: "Quiero pujar X tokens"
+Relayer → firma conversión
+Usuario → Smart contract con firma
+Auction termina
+Relayer → mintea NFT al ganador
+Todo centralizado en el relayer. ¿Tiene sentid

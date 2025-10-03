@@ -5,18 +5,37 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useWallet } from '@/hooks/useWallet'
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { baseMainnet } from '@/lib/chains'
+import { baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../../contracts/abis/KukuxumusuPayment_ABI.json'
 
-const PAYMENT_CONTRACT_ADDRESS = '0x8CDaEfE1079125A5BBCD5A75B977aC262C65413B' as const
+const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
 const NATIVE_ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as const
 
 // Tokens disponibles - TODO: Agregar direcciones reales de VTN y USDT
 const AVAILABLE_TOKENS = [
-  { address: NATIVE_ETH, symbol: 'ETH', decimals: 18 },
-  // { address: '0x...', symbol: 'VTN', decimals: 18 },
-  // { address: '0x...', symbol: 'USDT', decimals: 6 },
+  { address: NATIVE_ETH, symbol: 'ETH', decimals: 18, coingeckoId: 'ethereum' },
+  // { address: '0x...', symbol: 'VTN', decimals: 18, coingeckoId: 'valtoken' },
+  // { address: '0x...', symbol: 'USDT', decimals: 6, coingeckoId: 'tether' },
 ]
+
+// CoinGecko API para obtener precios
+async function getTokenPrices(tokenIds: string[]): Promise<{ [key: string]: number }> {
+  try {
+    const ids = tokenIds.join(',')
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
+    )
+    const data = await response.json()
+    const prices: { [key: string]: number } = {}
+    for (const id of tokenIds) {
+      prices[id] = data[id]?.usd || 0
+    }
+    return prices
+  } catch (error) {
+    console.error('Error fetching token prices:', error)
+    return {}
+  }
+}
 
 export function CreateAuctionForm() {
   const { address, isConnected } = useWallet()
@@ -25,10 +44,16 @@ export function CreateAuctionForm() {
   const [nftContract, setNftContract] = useState('')
   const [nftId, setNftId] = useState('')
   const [duration, setDuration] = useState('24') // horas
+  const [baseUsdtPrice, setBaseUsdtPrice] = useState('100') // Precio base en USDT
   const [selectedTokens, setSelectedTokens] = useState<string[]>([NATIVE_ETH])
+  const [discounts, setDiscounts] = useState<{ [key: string]: string }>({
+    [NATIVE_ETH]: '0', // % descuento por token
+  })
   const [minPrices, setMinPrices] = useState<{ [key: string]: string }>({
     [NATIVE_ETH]: '0.01',
   })
+  const [tokenPrices, setTokenPrices] = useState<{ [key: string]: number }>({})
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false)
   const [antiSnipingExtension, setAntiSnipingExtension] = useState('10') // minutos
   const [antiSnipingTrigger, setAntiSnipingTrigger] = useState('5') // minutos
 
@@ -39,16 +64,67 @@ export function CreateAuctionForm() {
     if (selectedTokens.includes(tokenAddress)) {
       setSelectedTokens(selectedTokens.filter(t => t !== tokenAddress))
       const newPrices = { ...minPrices }
+      const newDiscounts = { ...discounts }
       delete newPrices[tokenAddress]
+      delete newDiscounts[tokenAddress]
       setMinPrices(newPrices)
+      setDiscounts(newDiscounts)
     } else {
       setSelectedTokens([...selectedTokens, tokenAddress])
       setMinPrices({ ...minPrices, [tokenAddress]: '0.01' })
+      setDiscounts({ ...discounts, [tokenAddress]: '0' })
     }
   }
 
-  const handleMinPriceChange = (tokenAddress: string, value: string) => {
-    setMinPrices({ ...minPrices, [tokenAddress]: value })
+  const handleDiscountChange = (tokenAddress: string, value: string) => {
+    setDiscounts({ ...discounts, [tokenAddress]: value })
+  }
+
+  // Calcular precios automáticamente cuando cambia el precio base USDT o descuentos
+  const calculatePrices = async () => {
+    if (!baseUsdtPrice || selectedTokens.length === 0) return
+
+    setIsLoadingPrices(true)
+    try {
+      // Obtener IDs de CoinGecko de los tokens seleccionados
+      const tokenIds = selectedTokens
+        .map(addr => AVAILABLE_TOKENS.find(t => t.address === addr)?.coingeckoId)
+        .filter(Boolean) as string[]
+
+      // Obtener precios actuales
+      const prices = await getTokenPrices(tokenIds)
+      setTokenPrices(prices)
+
+      // Calcular minPrices con descuentos
+      const newMinPrices: { [key: string]: string } = {}
+
+      selectedTokens.forEach(tokenAddress => {
+        const token = AVAILABLE_TOKENS.find(t => t.address === tokenAddress)
+        if (!token) return
+
+        const tokenPrice = prices[token.coingeckoId] || 0
+        if (tokenPrice === 0) {
+          newMinPrices[tokenAddress] = '0'
+          return
+        }
+
+        // Aplicar descuento
+        const discount = parseFloat(discounts[tokenAddress] || '0')
+        const priceAfterDiscount = parseFloat(baseUsdtPrice) * (1 - discount / 100)
+
+        // Convertir USD a tokens
+        const tokenAmount = priceAfterDiscount / tokenPrice
+
+        // Formatear según decimales del token
+        newMinPrices[tokenAddress] = tokenAmount.toFixed(token.decimals === 6 ? 2 : 6)
+      })
+
+      setMinPrices(newMinPrices)
+    } catch (error) {
+      console.error('Error calculating prices:', error)
+    } finally {
+      setIsLoadingPrices(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +150,12 @@ export function CreateAuctionForm() {
         return BigInt(Math.floor(parseFloat(price) * 1e18))
       })
 
+      // Convertir descuentos a basis points (100 = 1%)
+      const discountsArray = selectedTokens.map(token => {
+        const discount = discounts[token] || '0'
+        return BigInt(Math.floor(parseFloat(discount) * 100))
+      })
+
       // Convertir anti-sniping de minutos a segundos
       const extensionInSeconds = BigInt(Number(antiSnipingExtension) * 60)
       const triggerInSeconds = BigInt(Number(antiSnipingTrigger) * 60)
@@ -85,13 +167,15 @@ export function CreateAuctionForm() {
         args: [
           nftContract as `0x${string}`,
           BigInt(nftId),
+          BigInt(0), // startTime (0 = immediate)
           durationInSeconds,
           selectedTokens as `0x${string}`[],
           minPricesArray,
+          discountsArray,
           extensionInSeconds,
           triggerInSeconds,
         ],
-        chainId: baseMainnet.id,
+        chainId: baseSepolia.id,
       })
     } catch (err: any) {
       console.error('Error creating auction:', err)
@@ -156,15 +240,46 @@ export function CreateAuctionForm() {
             />
           </div>
 
-          {/* Allowed Tokens */}
+          {/* Base USDT Price */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Allowed Payment Tokens *
+              Base Price (USDT) *
             </label>
+            <input
+              type="number"
+              step="0.01"
+              value={baseUsdtPrice}
+              onChange={(e) => setBaseUsdtPrice(e.target.value)}
+              placeholder="100"
+              min="0"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Base price in USDT. Discounts will be applied per token.
+            </p>
+          </div>
+
+          {/* Allowed Tokens */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Allowed Payment Tokens *
+              </label>
+              <Button
+                type="button"
+                onClick={calculatePrices}
+                disabled={isLoadingPrices || !baseUsdtPrice || selectedTokens.length === 0}
+                size="sm"
+                variant="outline"
+              >
+                {isLoadingPrices ? 'Calculating...' : 'Calculate Prices'}
+              </Button>
+            </div>
             <div className="space-y-3">
               {AVAILABLE_TOKENS.map((token) => (
                 <div key={token.address} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -174,21 +289,48 @@ export function CreateAuctionForm() {
                       />
                       <span className="font-medium">{token.symbol}</span>
                     </label>
+                    {tokenPrices[token.coingeckoId] && (
+                      <span className="text-xs text-gray-500">
+                        ${tokenPrices[token.coingeckoId].toFixed(2)}
+                      </span>
+                    )}
                   </div>
 
                   {selectedTokens.includes(token.address) && (
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">
-                        Minimum Price ({token.symbol})
-                      </label>
-                      <input
-                        type="number"
-                        step="0.0001"
-                        value={minPrices[token.address] || ''}
-                        onChange={(e) => handleMinPriceChange(token.address, e.target.value)}
-                        placeholder="0.01"
-                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      />
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">
+                          Discount (%)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={discounts[token.address] || '0'}
+                          onChange={(e) => handleDiscountChange(token.address, e.target.value)}
+                          placeholder="0"
+                          min="0"
+                          max="100"
+                          className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">
+                          Minimum Price ({token.symbol})
+                        </label>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          value={minPrices[token.address] || ''}
+                          readOnly
+                          placeholder="Click 'Calculate Prices'"
+                          className="w-full px-3 py-1 text-sm border border-gray-300 rounded bg-gray-50"
+                        />
+                        {discounts[token.address] && parseFloat(discounts[token.address]) > 0 && (
+                          <p className="text-xs text-green-600 mt-1">
+                            {discounts[token.address]}% discount applied
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

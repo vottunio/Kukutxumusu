@@ -68,7 +68,7 @@ fi
 
 # Pull del código más reciente
 log "📥 Actualizando código desde Git..."
-git pull origin main
+git pull origin master
 success "Código actualizado"
 
 # Build y deploy

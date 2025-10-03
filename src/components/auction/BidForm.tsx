@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlaceBid } from '@/hooks/usePlaceBid'
 import { useIsTokenAllowedForAuction, useAuctionMinPrice } from '@/hooks/useAuction'
+import { useHasSufficientBalance } from '@/hooks/useTokenBalance'
+import { useNetworkValidation } from '@/hooks/useNetworkValidation'
 import { formatUnits, parseUnits } from 'viem'
 import { getTokensByNetwork } from '@/config/tokens'
+import { AlertCircle } from 'lucide-react'
 
 interface BidFormProps {
   auctionId: number
@@ -66,6 +69,17 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
   const [selectedToken, setSelectedToken] = useState<TokenOption | null>(null)
   const [bidAmount, setBidAmount] = useState('')
   const { placeBidWithApproval, isApproving, isBidding, isSuccess, error } = usePlaceBid()
+  const { isCorrectNetwork, switchToPaymentNetwork } = useNetworkValidation()
+
+  const requiredAmount = bidAmount && selectedToken
+    ? parseUnits(bidAmount, selectedToken.decimals)
+    : 0n
+
+  const { hasSufficient, formattedBalance } = useHasSufficientBalance(
+    selectedToken?.address || '',
+    requiredAmount,
+    selectedToken?.decimals || 18
+  )
 
   // Set first token as default
   useEffect(() => {
@@ -84,8 +98,23 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
       return
     }
 
+    // Check network
+    if (!isCorrectNetwork) {
+      const switched = await switchToPaymentNetwork()
+      if (!switched) {
+        alert('Please switch to Base Sepolia network')
+        return
+      }
+    }
+
     if (!bidAmount || parseFloat(bidAmount) <= 0) {
       alert('Please enter a valid bid amount')
+      return
+    }
+
+    // Check balance
+    if (!hasSufficient) {
+      alert(`Insufficient balance. You have ${formattedBalance} ${selectedToken.symbol}`)
       return
     }
 
@@ -192,6 +221,39 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
               </p>
             )}
           </div>
+
+          {/* Network Warning */}
+          {isConnected && !isCorrectNetwork && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-yellow-800">Wrong Network</p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Please switch to Base Sepolia to place bids
+                </p>
+                <button
+                  type="button"
+                  onClick={switchToPaymentNetwork}
+                  className="mt-2 text-xs text-yellow-800 underline hover:text-yellow-900"
+                >
+                  Switch Network
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Balance Warning */}
+          {isConnected && selectedToken && bidAmount && !hasSufficient && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">Insufficient Balance</p>
+                <p className="text-xs text-red-700 mt-1">
+                  Balance: {formattedBalance} {selectedToken.symbol}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (

@@ -11,6 +11,9 @@
 8. [Implementation Guide](#implementation-guide)
 9. [Deployment](#deployment)
 
+RELAYER_DATABASE_URL=postgres://kukuxumusu:kukuxumusu_dev@localhost:5432/kukuxumusu_relayer?sslmode=disable
+RELAYER_DATABASE_URL=postgres://kukuxumusu:kukuxumusu_dev@localhost:5432/kukuxumusu_relayer?sslmode=disable
+
 ---
 
 ## Overview

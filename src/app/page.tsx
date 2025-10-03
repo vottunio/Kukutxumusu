@@ -2,21 +2,34 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useActiveAuction, useAuction } from '@/hooks/useAuction'
+import { useActiveAuctions, useAuction } from '@/hooks/useAuction'
 import { AuctionCard } from '@/components/auction/AuctionCard'
 import { BidForm } from '@/components/auction/BidForm'
 import { BidderList } from '@/components/auction/BidderList'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
-  const { activeAuctionId } = useActiveAuction()
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const { activeAuctionIds, totalActive } = useActiveAuctions()
+
+  const currentAuctionId = activeAuctionIds[currentIndex] ?? null
   const {
     auction,
     bids,
     isActive,
     isLoading,
     refetch,
-  } = useAuction(activeAuctionId ?? 0)
+  } = useAuction(currentAuctionId ?? 0)
+
+  // Navegar al siguiente/anterior
+  const goNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % totalActive)
+  }
+
+  const goPrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + totalActive) % totalActive)
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -49,43 +62,93 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Featured Auction Section */}
+        {/* Featured Auction Section with Carousel */}
         <div className="max-w-6xl mx-auto mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
-            Active Auction
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-bold text-gray-900">
+              Active Auctions
+            </h2>
+            {totalActive > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  {currentIndex + 1} of {totalActive}
+                </span>
+              </div>
+            )}
+          </div>
 
           {!mounted || isLoading ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <p className="text-gray-500">Loading auction...</p>
+              <p className="text-gray-500">Loading auctions...</p>
             </div>
-          ) : !auction ? (
+          ) : totalActive === 0 ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">No active auctions at the moment</p>
               <p className="text-sm text-gray-400 mt-2">Check back soon!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left: Auction Card */}
-              <div>
-                <AuctionCard auction={auction} auctionId={activeAuctionId!} />
+            <div className="relative">
+              {/* Navigation Arrows */}
+              {totalActive > 1 && (
+                <>
+                  <button
+                    onClick={goPrev}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition-colors"
+                    aria-label="Previous auction"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-gray-700" />
+                  </button>
+                  <button
+                    onClick={goNext}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-white rounded-full p-3 shadow-lg hover:bg-gray-50 transition-colors"
+                    aria-label="Next auction"
+                  >
+                    <ChevronRight className="w-6 h-6 text-gray-700" />
+                  </button>
+                </>
+              )}
+
+              {/* Auction Content */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left: Auction Card */}
+                <div>
+                  <AuctionCard auction={auction!} auctionId={currentAuctionId!} />
+                </div>
+
+                {/* Right: Bid Form & Bidder List */}
+                <div className="space-y-6">
+                  {isActive && (
+                    <BidForm
+                      auctionId={currentAuctionId!}
+                      currentHighestBid={auction!.highestBid}
+                      currentHighestToken={auction!.highestBidToken}
+                      onSuccess={refetch}
+                    />
+                  )}
+                  <BidderList
+                    bids={bids}
+                    currentHighestBidder={auction!.highestBidder}
+                  />
+                </div>
               </div>
 
-              {/* Right: Bid Form & Bidder List */}
-              <div className="space-y-6">
-                {isActive && (
-                  <BidForm
-                    auctionId={activeAuctionId!}
-                    currentHighestBid={auction.highestBid}
-                    currentHighestToken={auction.highestBidToken}
-                    onSuccess={refetch}
-                  />
-                )}
-                <BidderList
-                  bids={bids}
-                  currentHighestBidder={auction.highestBidder}
-                />
-              </div>
+              {/* Auction Indicators */}
+              {totalActive > 1 && (
+                <div className="flex justify-center gap-2 mt-6">
+                  {activeAuctionIds.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentIndex(index)}
+                      className={`h-2 rounded-full transition-all ${
+                        index === currentIndex
+                          ? 'w-8 bg-purple-600'
+                          : 'w-2 bg-gray-300 hover:bg-gray-400'
+                      }`}
+                      aria-label={`Go to auction ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

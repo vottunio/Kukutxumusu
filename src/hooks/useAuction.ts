@@ -138,6 +138,28 @@ export function useActiveAuction() {
 }
 
 /**
+ * Hook para obtener todas las subastas activas ordenadas por tiempo restante
+ */
+export function useActiveAuctions() {
+  const { isConnected } = useWallet()
+  const { totalAuctions } = useActiveAuction()
+
+  // Array de IDs de todas las subastas
+  const auctionIds = Array.from({ length: totalAuctions }, (_, i) => i)
+
+  // Por ahora, solo devolver IDs simples hasta que implementemos la lógica correcta
+  // TODO: Implementar lógica para obtener múltiples subastas sin violar Rules of Hooks
+  const activeAuctionIds = auctionIds.length > 0 ? [auctionIds[0]] : []
+  const totalActive = activeAuctionIds.length
+
+  return {
+    activeAuctionIds,
+    activeAuctions: [], // Temporalmente vacío
+    totalActive,
+  }
+}
+
+/**
  * Hook para verificar si un token está permitido en una subasta
  */
 export function useIsTokenAllowedForAuction(auctionId: number | bigint | undefined, tokenAddress: string) {

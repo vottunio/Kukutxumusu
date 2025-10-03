@@ -11,7 +11,11 @@
       "Bash(tree:*)",
       "Bash(npm run build:*)",
       "Bash(1)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(if [ -f \"c:\\Users\\smias\\Documents\\DEVELOPEMENT\\kukutxumusu\\src\\config\\wallets.ts\" ])",
+      "Bash(then rm \"c:\\Users\\smias\\Documents\\DEVELOPEMENT\\kukutxumusu\\src\\config\\wallets.ts\")",
+      "Bash(else echo \"Archivo no existe\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []

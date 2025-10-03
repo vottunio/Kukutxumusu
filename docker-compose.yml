@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Base de datos PostgreSQL para el relayer
+  # Base de datos PostgreSQL (compartida para Next.js y Go Relayer)
   postgres:
     image: postgres:15-alpine
     container_name: kukuxumusu-postgres
@@ -13,6 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
     networks:
       - kukuxumusu-network
     healthcheck:

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 // import { ContractData } from '@/components/ContractData'
 import { AccessDenied } from '@/components/AccessDenied'
 import { CreateNFTAuctionForm } from '@/components/admin/CreateNFTAuctionForm'
+import { ContractAdminPanel } from '@/components/admin/ContractAdminPanel'
 
 export default function AdminPage() {
   const { isAdmin, isConnected, address } = useAdmin()
@@ -84,34 +85,9 @@ export default function AdminPage() {
           <CreateNFTAuctionForm />
         </div>
 
-        {/* Other Admin Actions */}
+        {/* Contract Administration */}
         <div className="max-w-6xl mx-auto mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Other Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Prices</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">
-                  Set prices for direct purchases (for direct sales, not auctions)
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-500">
-                  Configure treasury and allowed tokens
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <ContractAdminPanel />
         </div>
 
         {/* Smart Contract Status - At the bottom */}

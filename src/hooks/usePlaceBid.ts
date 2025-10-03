@@ -4,11 +4,9 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useState, useEffect } from 'react'
 import { baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../contracts/abis/KukuxumusuPayment_ABI.json'
+import { NATIVE_ETH_ADDRESS } from '@/config/tokens'
 
 const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
-
-// Dirección especial para ETH nativo
-const NATIVE_ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as const
 
 // ABI mínimo para ERC20 (approve, allowance)
 const ERC20_ABI = [

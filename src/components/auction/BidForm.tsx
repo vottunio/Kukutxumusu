@@ -1,52 +1,86 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlaceBid } from '@/hooks/usePlaceBid'
-import { parseEther } from 'viem'
+import { useIsTokenAllowedForAuction, useAuctionMinPrice } from '@/hooks/useAuction'
+import { formatUnits, parseUnits } from 'viem'
+import { getTokensByNetwork } from '@/config/tokens'
 
 interface BidFormProps {
   auctionId: number
-  minBid: bigint
   currentHighestBid: bigint
+  currentHighestToken?: string
   onSuccess?: () => void
 }
 
-// Tokens disponibles - TODO: Agregar VTN y USDT con sus direcciones reales
-const AVAILABLE_TOKENS = [
-  {
-    address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-    symbol: 'ETH',
-    name: 'Ethereum',
-    decimals: 18,
-  },
-  // {
-  //   address: '0x...', // VTN address
-  //   symbol: 'VTN',
-  //   name: 'VTN Token',
-  //   decimals: 18,
-  // },
-  // {
-  //   address: '0x...', // USDT address
-  //   symbol: 'USDT',
-  //   name: 'Tether USD',
-  //   decimals: 6,
-  // },
-]
+interface TokenOption {
+  address: string
+  symbol: string
+  decimals: number
+}
 
-export function BidForm({ auctionId, minBid, currentHighestBid, onSuccess }: BidFormProps) {
+function TokenButton({
+  token,
+  auctionId,
+  isSelected,
+  onClick
+}: {
+  token: TokenOption
+  auctionId: number
+  isSelected: boolean
+  onClick: () => void
+}) {
+  const isAllowed = useIsTokenAllowedForAuction(auctionId, token.address)
+  const minPrice = useAuctionMinPrice(auctionId, token.address)
+
+  if (!isAllowed) return null
+
+  const formattedMinPrice = minPrice
+    ? parseFloat(formatUnits(minPrice, token.decimals)).toFixed(token.decimals === 6 ? 2 : 4)
+    : '...'
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-3 rounded-lg border-2 transition-all ${
+        isSelected
+          ? 'border-purple-600 bg-purple-50'
+          : 'border-gray-200 hover:border-gray-300'
+      }`}
+    >
+      <p className="font-bold">{token.symbol}</p>
+      <p className="text-xs text-gray-500 mt-1">
+        Min: {formattedMinPrice}
+      </p>
+    </button>
+  )
+}
+
+export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onSuccess }: BidFormProps) {
   const { address, isConnected } = useWallet()
-  const [selectedToken, setSelectedToken] = useState(AVAILABLE_TOKENS[0])
+  const allTokens = getTokensByNetwork('testnet')
+  const [selectedToken, setSelectedToken] = useState<TokenOption | null>(null)
   const [bidAmount, setBidAmount] = useState('')
   const { placeBidWithApproval, isApproving, isBidding, isSuccess, error } = usePlaceBid()
+
+  // Set first token as default
+  useEffect(() => {
+    if (!selectedToken && allTokens.length > 0) {
+      setSelectedToken(allTokens[0])
+    }
+  }, [allTokens])
+
+  const minPrice = useAuctionMinPrice(auctionId, selectedToken?.address || '')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!isConnected || !address) {
-      alert('Please connect your wallet')
+    if (!isConnected || !address || !selectedToken) {
+      alert('Please connect your wallet and select a token')
       return
     }
 
@@ -56,25 +90,33 @@ export function BidForm({ auctionId, minBid, currentHighestBid, onSuccess }: Bid
     }
 
     try {
-      const amountInWei = parseEther(bidAmount)
+      const amountInWei = parseUnits(bidAmount, selectedToken.decimals)
 
       // Verificar que el bid sea mayor que el mínimo
-      const minimumRequired = currentHighestBid > 0n ? currentHighestBid : minBid
+      const minimumRequired = currentHighestBid > 0n && currentHighestToken?.toLowerCase() === selectedToken.address.toLowerCase()
+        ? currentHighestBid
+        : minPrice || 0n
+
       if (amountInWei <= minimumRequired) {
         alert(
-          `Bid must be higher than ${parseFloat((minimumRequired.toString())) / 1e18} ${selectedToken.symbol}`
+          `Bid must be higher than ${formatUnits(minimumRequired, selectedToken.decimals)} ${selectedToken.symbol}`
         )
         return
       }
+
+      // TODO: Obtener valueInUSD y signature del relayer
+      const valueInUSD = BigInt(0)
+      const signature = '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
 
       await placeBidWithApproval(
         auctionId,
         selectedToken.address,
         amountInWei,
+        valueInUSD,
+        signature,
         address
       )
 
-      // Si es exitoso, limpiar form
       if (isSuccess) {
         setBidAmount('')
         if (onSuccess) {
@@ -86,10 +128,18 @@ export function BidForm({ auctionId, minBid, currentHighestBid, onSuccess }: Bid
     }
   }
 
-  // Calcular bid mínimo sugerido (un poco más que el actual)
-  const suggestedBid = currentHighestBid > 0n
-    ? (Number(currentHighestBid) / 1e18) * 1.05 // 5% más
-    : Number(minBid) / 1e18
+  const getMinimumForToken = () => {
+    if (!selectedToken || !minPrice) return 0
+
+    if (currentHighestBid > 0n && currentHighestToken?.toLowerCase() === selectedToken.address.toLowerCase()) {
+      return parseFloat(formatUnits(currentHighestBid, selectedToken.decimals)) * 1.05
+    }
+
+    return parseFloat(formatUnits(minPrice, selectedToken.decimals))
+  }
+
+  const suggestedBid = getMinimumForToken()
+  const decimalsToShow = selectedToken?.decimals === 6 ? 2 : 4
 
   return (
     <Card>
@@ -104,20 +154,14 @@ export function BidForm({ auctionId, minBid, currentHighestBid, onSuccess }: Bid
               Payment Token
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {AVAILABLE_TOKENS.map((token) => (
-                <button
+              {allTokens.map((token) => (
+                <TokenButton
                   key={token.address}
-                  type="button"
+                  token={token}
+                  auctionId={auctionId}
+                  isSelected={selectedToken?.address === token.address}
                   onClick={() => setSelectedToken(token)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedToken.address === token.address
-                      ? 'border-purple-600 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <p className="font-bold">{token.symbol}</p>
-                  <p className="text-xs text-gray-500">{token.name}</p>
-                </button>
+                />
               ))}
             </div>
           </div>
@@ -130,21 +174,23 @@ export function BidForm({ auctionId, minBid, currentHighestBid, onSuccess }: Bid
             <div className="relative">
               <input
                 type="number"
-                step="0.0001"
+                step={selectedToken?.decimals === 6 ? '0.01' : '0.0001'}
                 min="0"
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
-                placeholder={`Min: ${suggestedBid.toFixed(4)}`}
+                placeholder={suggestedBid > 0 ? `Min: ${suggestedBid.toFixed(decimalsToShow)}` : '0.0'}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 disabled={isApproving || isBidding}
               />
               <div className="absolute right-3 top-3 text-gray-500 font-medium">
-                {selectedToken.symbol}
+                {selectedToken?.symbol || 'ETH'}
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Suggested: {suggestedBid.toFixed(4)} {selectedToken.symbol}
-            </p>
+            {suggestedBid > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum: {suggestedBid.toFixed(decimalsToShow)} {selectedToken?.symbol}
+              </p>
+            )}
           </div>
 
           {/* Error Message */}
@@ -166,7 +212,7 @@ export function BidForm({ auctionId, minBid, currentHighestBid, onSuccess }: Bid
             type="submit"
             className="w-full"
             size="lg"
-            disabled={!isConnected || isApproving || isBidding || !bidAmount}
+            disabled={!isConnected || isApproving || isBidding || !bidAmount || !selectedToken}
           >
             {!isConnected && 'Connect Wallet'}
             {isConnected && isApproving && 'Approving Token...'}
@@ -182,7 +228,7 @@ export function BidForm({ auctionId, minBid, currentHighestBid, onSuccess }: Bid
           )}
           {isApproving && (
             <p className="text-xs text-center text-gray-500">
-              Step 1/2: Approving {selectedToken.symbol} for spending...
+              Step 1/2: Approving {selectedToken?.symbol} for spending...
             </p>
           )}
           {isBidding && (

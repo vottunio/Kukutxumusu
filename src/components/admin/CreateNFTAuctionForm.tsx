@@ -8,18 +8,21 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { baseMainnet, baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../../contracts/abis/KukuxumusuPayment_ABI.json'
 import Image from 'next/image'
-import { getTokenArray, type NetworkMode } from '@/lib/tokens'
+import { getTokensByNetwork } from '@/config/tokens'
+import { getMultipleTokenPrices } from '@/config/priceApis'
 
 const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
 const NFT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS as `0x${string}`
+
+type NetworkMode = 'testnet' | 'mainnet'
 
 export function CreateNFTAuctionForm() {
   const { address, isConnected } = useWallet()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Network mode
+  // Network mode selector
   const [networkMode, setNetworkMode] = useState<NetworkMode>('testnet')
-  const availableTokens = getTokenArray(networkMode).filter(token => token.address !== '')
+  const availableTokens = getTokensByNetwork(networkMode)
 
   // Step 1: NFT Metadata
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -35,10 +38,17 @@ export function CreateNFTAuctionForm() {
   const [startTime, setStartTime] = useState<'now' | 'scheduled'>('now')
   const [scheduledDate, setScheduledDate] = useState('')
   const [duration, setDuration] = useState('24')
+  const [baseUsdtPrice, setBaseUsdtPrice] = useState('100') // Precio base en USDT
   const [selectedTokens, setSelectedTokens] = useState<string[]>([availableTokens[0].address])
   const [minPrices, setMinPrices] = useState<{ [key: string]: string }>({
     [availableTokens[0].address]: '0.01',
   })
+  const [discounts, setDiscounts] = useState<{ [key: string]: string }>({
+    [availableTokens[0].address]: '0',
+  })
+  const [tokenPrices, setTokenPrices] = useState<{ [key: string]: number }>({})
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false)
+  const [enableAntiSniping, setEnableAntiSniping] = useState(false)
   const [antiSnipingExtension, setAntiSnipingExtension] = useState('10')
   const [antiSnipingTrigger, setAntiSnipingTrigger] = useState('5')
 
@@ -151,16 +161,71 @@ export function CreateNFTAuctionForm() {
     if (selectedTokens.includes(tokenAddress)) {
       setSelectedTokens(selectedTokens.filter(t => t !== tokenAddress))
       const newPrices = { ...minPrices }
+      const newDiscounts = { ...discounts }
       delete newPrices[tokenAddress]
+      delete newDiscounts[tokenAddress]
       setMinPrices(newPrices)
+      setDiscounts(newDiscounts)
     } else {
       setSelectedTokens([...selectedTokens, tokenAddress])
       setMinPrices({ ...minPrices, [tokenAddress]: '0.01' })
+      setDiscounts({ ...discounts, [tokenAddress]: '0' })
     }
   }
 
   const handleMinPriceChange = (tokenAddress: string, value: string) => {
     setMinPrices({ ...minPrices, [tokenAddress]: value })
+  }
+
+  const handleDiscountChange = (tokenAddress: string, value: string) => {
+    setDiscounts({ ...discounts, [tokenAddress]: value })
+  }
+
+  // Calcular precios automáticamente
+  const calculatePrices = async () => {
+    if (!baseUsdtPrice || selectedTokens.length === 0) return
+
+    setIsLoadingPrices(true)
+    try {
+      // Obtener IDs de tokens para consultar precios
+      const tokenIds = selectedTokens
+        .map(addr => availableTokens.find(t => t.address === addr)?.coingeckoId)
+        .filter(Boolean) as string[]
+
+      // Obtener precios actuales
+      const prices = await getMultipleTokenPrices(tokenIds)
+      setTokenPrices(prices)
+
+      // Calcular minPrices con descuentos
+      const newMinPrices: { [key: string]: string } = {}
+
+      selectedTokens.forEach(tokenAddress => {
+        const token = availableTokens.find(t => t.address === tokenAddress)
+        if (!token) return
+
+        const tokenPrice = prices[token.coingeckoId!] || 0
+        if (tokenPrice === 0) {
+          newMinPrices[tokenAddress] = '0'
+          return
+        }
+
+        // Aplicar descuento
+        const discount = parseFloat(discounts[tokenAddress] || '0')
+        const priceAfterDiscount = parseFloat(baseUsdtPrice) * (1 - discount / 100)
+
+        // Convertir USD a tokens
+        const tokenAmount = priceAfterDiscount / tokenPrice
+
+        // Formatear según decimales
+        newMinPrices[tokenAddress] = tokenAmount.toFixed(token.decimals === 6 ? 2 : 6)
+      })
+
+      setMinPrices(newMinPrices)
+    } catch (error) {
+      console.error('Error calculating prices:', error)
+    } finally {
+      setIsLoadingPrices(false)
+    }
   }
 
   const uploadImageToPinata = async (): Promise<string> => {
@@ -242,12 +307,23 @@ export function CreateNFTAuctionForm() {
       }
 
       const durationInSeconds = BigInt(Number(duration) * 3600)
+
       const minPricesArray = selectedTokens.map(token => {
         const price = minPrices[token] || '0'
-        return BigInt(Math.floor(parseFloat(price) * 1e18))
+        const tokenConfig = availableTokens.find(t => t.address === token)
+        const decimals = tokenConfig?.decimals || 18
+        return BigInt(Math.floor(parseFloat(price) * Math.pow(10, decimals)))
       })
-      const extensionInSeconds = BigInt(Number(antiSnipingExtension) * 60)
-      const triggerInSeconds = BigInt(Number(antiSnipingTrigger) * 60)
+
+      // Convertir descuentos a basis points (100 = 1%)
+      const discountsArray = selectedTokens.map(token => {
+        const discount = discounts[token] || '0'
+        return BigInt(Math.floor(parseFloat(discount) * 100))
+      })
+
+      // Si anti-sniping está desactivado, poner 0
+      const extensionInSeconds = enableAntiSniping ? BigInt(Number(antiSnipingExtension) * 60) : BigInt(0)
+      const triggerInSeconds = enableAntiSniping ? BigInt(Number(antiSnipingTrigger) * 60) : BigInt(0)
 
       writeContract({
         address: PAYMENT_CONTRACT_ADDRESS,
@@ -260,6 +336,7 @@ export function CreateNFTAuctionForm() {
           durationInSeconds,
           selectedTokens as `0x${string}`[],
           minPricesArray,
+          discountsArray,
           extensionInSeconds,
           triggerInSeconds,
         ],
@@ -503,6 +580,26 @@ export function CreateNFTAuctionForm() {
               />
             </div>
 
+            {/* Base USDT Price */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Base Price (USDT) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={baseUsdtPrice}
+                onChange={(e) => setBaseUsdtPrice(e.target.value)}
+                placeholder="100"
+                min="0"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Base price in USDT. Discounts will be applied per token.
+              </p>
+            </div>
+
             {/* Network Mode Selector */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -534,60 +631,135 @@ export function CreateNFTAuctionForm() {
 
             {/* Allowed Tokens & Min Prices */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Allowed Payment Tokens *
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Allowed Payment Tokens *
+                </label>
+                <Button
+                  type="button"
+                  onClick={calculatePrices}
+                  disabled={isLoadingPrices || !baseUsdtPrice || selectedTokens.length === 0}
+                  size="sm"
+                  variant="outline"
+                >
+                  {isLoadingPrices ? 'Calculating...' : 'Calculate Prices'}
+                </Button>
+              </div>
               <div className="space-y-2">
                 {availableTokens.map((token) => (
                   <div key={token.address} className="border rounded-lg p-3">
-                    <label className="flex items-center gap-2 mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedTokens.includes(token.address)}
-                        onChange={() => handleTokenToggle(token.address)}
-                        className="w-4 h-4"
-                      />
-                      <span className="font-medium">{token.symbol}</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedTokens.includes(token.address)}
+                          onChange={() => handleTokenToggle(token.address)}
+                          className="w-4 h-4"
+                        />
+                        <span className="font-medium">{token.symbol}</span>
+                      </label>
+                      {tokenPrices[token.coingeckoId!] && (
+                        <span className="text-xs text-gray-500">
+                          ${tokenPrices[token.coingeckoId!].toFixed(2)}
+                        </span>
+                      )}
+                    </div>
                     {selectedTokens.includes(token.address) && (
-                      <input
-                        type="number"
-                        step="0.0001"
-                        value={minPrices[token.address] || ''}
-                        onChange={(e) => handleMinPriceChange(token.address, e.target.value)}
-                        placeholder="0.01"
-                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600"
-                      />
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">
+                            Discount (%)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={discounts[token.address] || '0'}
+                            onChange={(e) => handleDiscountChange(token.address, e.target.value)}
+                            placeholder="0"
+                            min="0"
+                            max="100"
+                            className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">
+                            Minimum Price ({token.symbol})
+                          </label>
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={minPrices[token.address] || ''}
+                            readOnly
+                            placeholder="Click 'Calculate Prices'"
+                            className="w-full px-3 py-1 text-sm border border-gray-300 rounded bg-gray-50"
+                          />
+                          {discounts[token.address] && parseFloat(discounts[token.address]) > 0 && (
+                            <p className="text-xs text-green-600 mt-1">
+                              {discounts[token.address]}% discount applied
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Anti-Sniping */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Extension (minutes)
-                </label>
+            {/* Anti-Sniping Protection */}
+            <div className="mb-4 border-t pt-4">
+              <div className="flex items-center gap-2 mb-3">
                 <input
-                  type="number"
-                  value={antiSnipingExtension}
-                  onChange={(e) => setAntiSnipingExtension(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600"
+                  type="checkbox"
+                  id="enableAntiSniping"
+                  checked={enableAntiSniping}
+                  onChange={(e) => setEnableAntiSniping(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded"
                 />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Trigger (minutes)
+                <label htmlFor="enableAntiSniping" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Enable Anti-Sniping Protection
                 </label>
-                <input
-                  type="number"
-                  value={antiSnipingTrigger}
-                  onChange={(e) => setAntiSnipingTrigger(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600"
-                />
               </div>
+              <p className="text-xs text-gray-500 mb-3">
+                💡 Prevents last-second bids by extending the auction if a bid is placed near the end.
+              </p>
+
+              {enableAntiSniping && (
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Extension (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={antiSnipingExtension}
+                      onChange={(e) => setAntiSnipingExtension(e.target.value)}
+                      placeholder="10"
+                      min="1"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      How long to extend
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Trigger Window (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={antiSnipingTrigger}
+                      onChange={(e) => setAntiSnipingTrigger(e.target.value)}
+                      placeholder="5"
+                      min="1"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-600"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Last X minutes trigger extension
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

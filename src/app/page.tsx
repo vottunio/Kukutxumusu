@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useActiveAuction, useAuction } from '@/hooks/useAuction'
 import { AuctionCard } from '@/components/auction/AuctionCard'
@@ -7,6 +8,7 @@ import { BidForm } from '@/components/auction/BidForm'
 import { BidderList } from '@/components/auction/BidderList'
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false)
   const { activeAuctionId } = useActiveAuction()
   const {
     auction,
@@ -15,6 +17,10 @@ export default function Home() {
     isLoading,
     refetch,
   } = useAuction(activeAuctionId ?? 0)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
@@ -49,20 +55,16 @@ export default function Home() {
             Active Auction
           </h2>
 
-          {isLoading && (
+          {!mounted || isLoading ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">Loading auction...</p>
             </div>
-          )}
-
-          {!isLoading && !auction && (
+          ) : !auction ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">No active auctions at the moment</p>
               <p className="text-sm text-gray-400 mt-2">Check back soon!</p>
             </div>
-          )}
-
-          {!isLoading && auction && (
+          ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left: Auction Card */}
               <div>
@@ -74,8 +76,8 @@ export default function Home() {
                 {isActive && (
                   <BidForm
                     auctionId={activeAuctionId!}
-                    minBid={0n} // TODO: Get from contract
                     currentHighestBid={auction.highestBid}
+                    currentHighestToken={auction.highestBidToken}
                     onSuccess={refetch}
                   />
                 )}

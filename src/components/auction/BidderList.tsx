@@ -4,14 +4,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Bid } from '@/hooks/useAuction'
 import { formatEther } from 'viem'
+import { getTokenSymbol } from '@/config/tokens'
 
 interface BidderListProps {
   bids: Bid[]
   currentHighestBidder?: string
-}
-
-const TOKEN_NAMES: { [key: string]: string } = {
-  '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE': 'ETH',
 }
 
 export function BidderList({ bids, currentHighestBidder }: BidderListProps) {
@@ -44,7 +41,7 @@ export function BidderList({ bids, currentHighestBidder }: BidderListProps) {
       <CardContent>
         <div className="space-y-3">
           {sortedBids.map((bid, index) => {
-            const tokenName = TOKEN_NAMES[bid.token] || 'Token'
+            const tokenName = getTokenSymbol(bid.token)
             const isHighest = bid.bidder.toLowerCase() === currentHighestBidder?.toLowerCase()
             const date = new Date(Number(bid.timestamp) * 1000)
 
@@ -72,9 +69,16 @@ export function BidderList({ bids, currentHighestBidder }: BidderListProps) {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-lg">
-                    {formatEther(bid.amount)}
+                    {formatEther(bid.amount)} {tokenName}
                   </p>
-                  <p className="text-xs text-gray-600">{tokenName}</p>
+                  {bid.valueInUSD > 0n && (
+                    <p className="text-xs text-gray-500">
+                      ≈ ${(Number(bid.valueInUSD) / 1e18).toFixed(2)} USD
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {date.toLocaleTimeString()}
+                  </p>
                 </div>
               </div>
             )

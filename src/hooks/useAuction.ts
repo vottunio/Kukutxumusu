@@ -140,14 +140,14 @@ export function useActiveAuction() {
 /**
  * Hook para verificar si un token está permitido en una subasta
  */
-export function useIsTokenAllowedForAuction(auctionId: number | bigint, tokenAddress: string) {
+export function useIsTokenAllowedForAuction(auctionId: number | bigint | undefined, tokenAddress: string) {
   const { isConnected } = useWallet()
 
   const { data: isAllowed } = useReadContract({
     address: PAYMENT_CONTRACT_ADDRESS,
     abi: PaymentABI,
     functionName: 'isTokenAllowedForAuction',
-    args: [BigInt(auctionId), tokenAddress as `0x${string}`],
+    args: [BigInt(auctionId || 0), tokenAddress as `0x${string}`],
     chainId: baseSepolia.id,
     query: {
       enabled: isConnected && auctionId !== undefined && !!tokenAddress,
@@ -160,14 +160,14 @@ export function useIsTokenAllowedForAuction(auctionId: number | bigint, tokenAdd
 /**
  * Hook para obtener el precio mínimo de una subasta por token
  */
-export function useAuctionMinPrice(auctionId: number | bigint, tokenAddress: string) {
+export function useAuctionMinPrice(auctionId: number | bigint | undefined, tokenAddress: string) {
   const { isConnected } = useWallet()
 
   const { data: minPrice } = useReadContract({
     address: PAYMENT_CONTRACT_ADDRESS,
     abi: PaymentABI,
     functionName: 'getAuctionMinPrice',
-    args: [BigInt(auctionId), tokenAddress as `0x${string}`],
+    args: [BigInt(auctionId || 0), tokenAddress as `0x${string}`],
     chainId: baseSepolia.id,
     query: {
       enabled: isConnected && auctionId !== undefined && !!tokenAddress,

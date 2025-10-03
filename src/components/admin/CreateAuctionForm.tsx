@@ -8,29 +8,16 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../../contracts/abis/KukuxumusuPayment_ABI.json'
 
+import { AVAILABLE_TOKENS, NATIVE_ETH_ADDRESS } from '@/config/tokens'
+
 const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
-const NATIVE_ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as const
 
-// Tokens disponibles - TODO: Agregar direcciones reales de VTN y USDT
-const AVAILABLE_TOKENS = [
-  { address: NATIVE_ETH, symbol: 'ETH', decimals: 18, coingeckoId: 'ethereum' },
-  // { address: '0x...', symbol: 'VTN', decimals: 18, coingeckoId: 'valtoken' },
-  // { address: '0x...', symbol: 'USDT', decimals: 6, coingeckoId: 'tether' },
-]
+import { getMultipleTokenPrices } from '@/config/priceApis'
 
-// CoinGecko API para obtener precios
+// Obtener precios desde múltiples fuentes (CoinGecko, QuickNode, etc.)
 async function getTokenPrices(tokenIds: string[]): Promise<{ [key: string]: number }> {
   try {
-    const ids = tokenIds.join(',')
-    const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
-    )
-    const data = await response.json()
-    const prices: { [key: string]: number } = {}
-    for (const id of tokenIds) {
-      prices[id] = data[id]?.usd || 0
-    }
-    return prices
+    return await getMultipleTokenPrices(tokenIds)
   } catch (error) {
     console.error('Error fetching token prices:', error)
     return {}
@@ -40,17 +27,21 @@ async function getTokenPrices(tokenIds: string[]): Promise<{ [key: string]: numb
 export function CreateAuctionForm() {
   const { address, isConnected } = useWallet()
 
+  // DEBUG
+  console.log('🔍 Tokens en CreateAuctionForm:', AVAILABLE_TOKENS)
+  console.log('🔍 Total tokens:', AVAILABLE_TOKENS.length)
+
   // Form state
   const [nftContract, setNftContract] = useState('')
   const [nftId, setNftId] = useState('')
   const [duration, setDuration] = useState('24') // horas
   const [baseUsdtPrice, setBaseUsdtPrice] = useState('100') // Precio base en USDT
-  const [selectedTokens, setSelectedTokens] = useState<string[]>([NATIVE_ETH])
+  const [selectedTokens, setSelectedTokens] = useState<string[]>([NATIVE_ETH_ADDRESS])
   const [discounts, setDiscounts] = useState<{ [key: string]: string }>({
-    [NATIVE_ETH]: '0', // % descuento por token
+    [NATIVE_ETH_ADDRESS]: '0', // % descuento por token
   })
   const [minPrices, setMinPrices] = useState<{ [key: string]: string }>({
-    [NATIVE_ETH]: '0.01',
+    [NATIVE_ETH_ADDRESS]: '0.01',
   })
   const [tokenPrices, setTokenPrices] = useState<{ [key: string]: number }>({})
   const [isLoadingPrices, setIsLoadingPrices] = useState(false)
@@ -144,10 +135,12 @@ export function CreateAuctionForm() {
       // Convertir duración de horas a segundos
       const durationInSeconds = BigInt(Number(duration) * 3600)
 
-      // Convertir precios mínimos a wei (18 decimals)
+      // Convertir precios mínimos según decimales de cada token
       const minPricesArray = selectedTokens.map(token => {
         const price = minPrices[token] || '0'
-        return BigInt(Math.floor(parseFloat(price) * 1e18))
+        const tokenConfig = AVAILABLE_TOKENS.find(t => t.address === token)
+        const decimals = tokenConfig?.decimals || 18
+        return BigInt(Math.floor(parseFloat(price) * Math.pow(10, decimals)))
       })
 
       // Convertir descuentos a basis points (100 = 1%)
@@ -264,7 +257,7 @@ export function CreateAuctionForm() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">
-                Allowed Payment Tokens *
+                Allowed Payment Tokens * (Total: {AVAILABLE_TOKENS.length})
               </label>
               <Button
                 type="button"
@@ -277,6 +270,7 @@ export function CreateAuctionForm() {
               </Button>
             </div>
             <div className="space-y-3">
+              {AVAILABLE_TOKENS.length === 0 && <p className="text-red-500">⚠️ No tokens available!</p>}
               {AVAILABLE_TOKENS.map((token) => (
                 <div key={token.address} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">

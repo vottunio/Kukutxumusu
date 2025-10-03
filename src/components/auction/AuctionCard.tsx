@@ -7,6 +7,7 @@ import { CountdownTimer } from './CountdownTimer'
 import { Auction } from '@/hooks/useAuction'
 import { formatEther } from 'viem'
 import Image from 'next/image'
+import { getTokenSymbol } from '@/config/tokens'
 
 interface AuctionCardProps {
   auction: Auction
@@ -20,18 +21,11 @@ interface NFTData {
   collection: string
 }
 
-// Mapeo de direcciones de tokens a nombres
-const TOKEN_NAMES: { [key: string]: string } = {
-  '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE': 'ETH',
-  '0x812BAe92A8A5BE95A68Be5653e565Fd469fE234E': 'VTN'
-  // Agregar VTN y USDT cuando tengas las direcciones
-}
-
 export function AuctionCard({ auction, auctionId }: AuctionCardProps) {
   const [nftData, setNftData] = useState<NFTData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const tokenName = TOKEN_NAMES[auction.highestBidToken] || 'Token'
+  const tokenName = getTokenSymbol(auction.highestBidToken)
   const hasValidBid = auction.highestBid > 0n
 
   useEffect(() => {
@@ -106,6 +100,11 @@ export function AuctionCard({ auction, auctionId }: AuctionCardProps) {
                 <p className="text-3xl font-bold text-gray-900">
                   {formatEther(auction.highestBid)} {tokenName}
                 </p>
+                {auction.highestBidValueUSD > 0n && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    ≈ ${(Number(auction.highestBidValueUSD) / 1e18).toFixed(2)} USD
+                  </p>
+                )}
                 <p className="text-sm text-gray-600 mt-1">
                   by {auction.highestBidder.slice(0, 6)}...{auction.highestBidder.slice(-4)}
                 </p>

@@ -16,6 +16,9 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
+# Generar Prisma Client
+RUN npx prisma generate
+
 # Variables de entorno necesarias para el build (NEXT_PUBLIC_* se leen en build time)
 ARG NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID
 ARG NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS
@@ -41,5 +44,5 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Comando de inicio
-CMD ["npm", "start"]
+# Comando de inicio - ejecuta prisma db push y luego npm start
+CMD sh -c "npx prisma db push --skip-generate && npm start"

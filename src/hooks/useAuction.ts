@@ -61,6 +61,11 @@ export function useAuction(auctionId: number | bigint) {
     },
   })
 
+  // Debug: Ver data cruda del contrato
+  if (typeof window !== 'undefined' && bidsData !== undefined) {
+    console.log('📦 [useAuction] Raw bidsData from contract:', bidsData)
+  }
+
   // Parsear datos de la subasta
   const auction: Auction | null = auctionData ? {
     nftContract: (auctionData as any)[0],
@@ -84,6 +89,11 @@ export function useAuction(auctionId: number | bigint) {
     valueInUSD: bid.valueInUSD,
     timestamp: bid.timestamp,
   })) : []
+
+  // Debug log
+  if (typeof window !== 'undefined' && bidsData) {
+    console.log(`👀 [useAuction] Bids for auction ${auctionId}:`, bids.length, bids)
+  }
 
   // Calcular si la subasta está activa
   const isActive = auction && !auction.finalized &&
@@ -147,9 +157,9 @@ export function useActiveAuctions() {
   // Array de IDs de todas las subastas
   const auctionIds = Array.from({ length: totalAuctions }, (_, i) => i)
 
-  // Por ahora, solo devolver IDs simples hasta que implementemos la lógica correcta
-  // TODO: Implementar lógica para obtener múltiples subastas sin violar Rules of Hooks
-  const activeAuctionIds = auctionIds.length > 0 ? [auctionIds[0]] : []
+  // Devolver todos los IDs de subastas
+  // El componente que use este hook decidirá cuáles están activas
+  const activeAuctionIds = auctionIds
   const totalActive = activeAuctionIds.length
 
   return {

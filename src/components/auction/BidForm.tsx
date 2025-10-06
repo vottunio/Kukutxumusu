@@ -69,7 +69,8 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
   const allTokens = getTokensByNetwork('testnet')
   const [selectedToken, setSelectedToken] = useState<TokenOption | null>(null)
   const [bidAmount, setBidAmount] = useState('')
-  const { placeBidWithApproval, isApproving, isBidding, isSuccess, error } = usePlaceBid()
+  const [isLoadingSignature, setIsLoadingSignature] = useState(false)
+  const { placeBidWithApproval, isApproving, isBidding, isSuccess, error, gasEstimate } = usePlaceBid()
   const { isCorrectNetwork, switchToPaymentNetwork } = useNetworkValidation()
 
   const requiredAmount = bidAmount && selectedToken
@@ -87,7 +88,21 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
     if (!selectedToken && allTokens.length > 0) {
       setSelectedToken(allTokens[0])
     }
-  }, [allTokens])
+  }, [allTokens, selectedToken])
+
+  // Handle successful bid
+  useEffect(() => {
+    if (isSuccess) {
+      setBidAmount('')
+      console.log('✅ Bid successful! Refreshing auction data...')
+      // Wait 2 seconds for blockchain to confirm, then refresh
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess()
+        }
+      }, 2000)
+    }
+  }, [isSuccess, onSuccess])
 
   const minPrice = useAuctionMinPrice(auctionId, selectedToken?.address || '')
 
@@ -134,9 +149,31 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
         return
       }
 
-      // TODO: Obtener valueInUSD y signature del relayer
-      const valueInUSD = BigInt(0)
-      const signature = '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
+      // Obtener valueInUSD y signature del relayer
+      setIsLoadingSignature(true)
+      const signResponse = await fetch('/api/sign-bid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auctionId,
+          bidder: address,
+          tokenAddress: selectedToken.address,
+          amount: amountInWei.toString(),
+        }),
+      })
+
+      if (!signResponse.ok) {
+        const error = await signResponse.json()
+        alert(`Failed to sign bid: ${error.error || 'Unknown error'}`)
+        setIsLoadingSignature(false)
+        return
+      }
+
+      setIsLoadingSignature(false)
+
+      const signData = await signResponse.json()
+      const valueInUSD = BigInt(signData.data.valueInUSD)
+      const signature = signData.data.signature as `0x${string}`
 
       await placeBidWithApproval(
         auctionId,
@@ -146,13 +183,7 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
         signature,
         address
       )
-
-      if (isSuccess) {
-        setBidAmount('')
-        if (onSuccess) {
-          onSuccess()
-        }
-      }
+      // El useEffect se encarga de limpiar el form y llamar onSuccess
     } catch (err: any) {
       console.error('Error placing bid:', err)
     }
@@ -282,18 +313,38 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
             type="submit"
             className="w-full"
             size="lg"
-            disabled={disabled || !isConnected || isApproving || isBidding || !bidAmount || !selectedToken}
+            disabled={disabled || !isConnected || isLoadingSignature || isApproving || isBidding || !bidAmount || !selectedToken}
           >
             {!isConnected && 'Connect Wallet'}
+            {isConnected && isLoadingSignature && 'Getting Price...'}
             {isConnected && isApproving && 'Approving Token...'}
             {isConnected && isBidding && 'Placing Bid...'}
-            {isConnected && !isApproving && !isBidding && 'Place Bid'}
+            {isConnected && !isLoadingSignature && !isApproving && !isBidding && 'Place Bid'}
           </Button>
+
+          {/* Gas Info */}
+          {gasEstimate && isConnected && selectedToken && (
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-800 text-center">
+                💡 Gas optimizado: ~{Number(gasEstimate).toLocaleString()} gas units
+                {selectedToken.address !== '0x0000000000000000000000000000000000000000' && (
+                  <span className="block mt-1">
+                    ✅ Aprove infinito activado - futuras pujas costarán menos gas
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
 
           {/* Info */}
           {!isConnected && (
             <p className="text-xs text-center text-gray-500">
               Connect your wallet to place a bid
+            </p>
+          )}
+          {isLoadingSignature && (
+            <p className="text-xs text-center text-gray-500">
+              Getting token price and signature from relayer...
             </p>
           )}
           {isApproving && (

@@ -1,6 +1,6 @@
 import { useReadContract, useAccount, useBalance } from 'wagmi'
 import { erc20Abi, formatUnits } from 'viem'
-import { base } from 'viem/chains'
+import { PAYMENT_CHAIN } from '@/config/network'
 
 export function useTokenBalance(tokenAddress: string) {
   const { address, isConnected } = useAccount()
@@ -8,7 +8,7 @@ export function useTokenBalance(tokenAddress: string) {
   // For native ETH
   const { data: ethBalance } = useBalance({
     address: address,
-    chainId: base.id,
+    chainId: PAYMENT_CHAIN.id,
     query: {
       enabled: isConnected && tokenAddress === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
     },
@@ -20,7 +20,7 @@ export function useTokenBalance(tokenAddress: string) {
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    chainId: base.id,
+    chainId: PAYMENT_CHAIN.id,
     query: {
       enabled: isConnected && !!address && tokenAddress !== '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
     },

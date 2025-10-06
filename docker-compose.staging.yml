@@ -63,31 +63,29 @@ services:
       - kukuxumusu-staging-network
     restart: unless-stopped
 
-  # Backend Go Relayer (staging) - DESHABILITADO - Se ejecuta por separado
-  # relayer:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: kukuxumusu-relayer-staging
-  #   environment:
-  #     - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_staging@postgres:5432/kukuxumusu_relayer?sslmode=disable
-  #     - REDIS_URL=redis://redis:6379
-  #     - BASE_RPC_URL=${BASE_RPC_URL}
-  #     - STORY_RPC_URL=${STORY_RPC_URL}
-  #     - PAYMENT_CONTRACT_ADDRESS=${PAYMENT_CONTRACT_ADDRESS}
-  #     - NFT_CONTRACT_ADDRESS=${NFT_CONTRACT_ADDRESS}
-  #     - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
-  #     - PINATA_API_KEY=${PINATA_API_KEY}
-  #     - PINATA_SECRET=${PINATA_SECRET}
-  #     - ENVIRONMENT=staging
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_started
-  #   networks:
-  #     - kukuxumusu-staging-network
-  #   restart: unless-stopped
+  # Worker Node.js (Event Listener + Mint Executor)
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: kukuxumusu-worker-staging
+    environment:
+      - NODE_ENV=staging
+      - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_staging@postgres:5432/kukuxumusu?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - NEXT_PUBLIC_BASE_RPC_URL=${NEXT_PUBLIC_BASE_RPC_URL}
+      - NEXT_PUBLIC_STORY_RPC_URL=${NEXT_PUBLIC_STORY_RPC_URL}
+      - NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=${NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS}
+      - NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=${NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}
+      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kukuxumusu-staging-network
+    restart: unless-stopped
 
   # Nginx reverse proxy (staging)
   nginx:

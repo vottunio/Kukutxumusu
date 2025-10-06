@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Blockchain Events</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #results { margin-top: 20px; }
+        .event { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Checking Blockchain for Bids</h1>
+    <button onclick="checkEvents()">Check Events</button>
+    <div id="results"></div>
+
+    <script>
+        const RPC_URL = 'https://sepolia.base.org';
+        const CONTRACT_ADDRESS = '0x535683a04a9bFE0F9EF102336706A981d12fF125';
+        
+        // Event signature for BidPlaced(uint256 indexed auctionId, address indexed bidder, address token, uint256 amount, uint256 timestamp)
+        const BID_PLACED_TOPIC = '0x'; // Will calculate below
+
+        async function rpcCall(method, params) {
+            const response = await fetch(RPC_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: method,
+                    params: params
+                })
+            });
+            const data = await response.json();
+            return data.result;
+        }
+
+        async function checkEvents() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔄 Loading events from blockchain...</p>';
+
+            try {
+                // Get logs for BidPlaced event
+                // Topic0 is keccak256("BidPlaced(uint256,address,address,uint256,uint256)")
+                const topic0 = '0x4a1e3b4c8a9f7c3d6e2b5a8f1c4d7e3a9b6c8d5e2f7a3b9c6d8e5f2a7b4c9d6e'; // Placeholder, need actual
+                
+                // Let's try a simpler approach - get recent blocks
+                const latestBlock = await rpcCall('eth_blockNumber', []);
+                results.innerHTML = `<p>Latest block: ${parseInt(latestBlock, 16)}</p>`;
+
+                // Get logs from contract
+                const logs = await rpcCall('eth_getLogs', [{
+                    address: CONTRACT_ADDRESS,
+                    fromBlock: '0x0',
+                    toBlock: 'latest'
+                }]);
+
+                console.log('All logs from contract:', logs);
+
+                if (!logs || logs.length === 0) {
+                    results.innerHTML += '<p class="error">❌ No events found from contract!</p>';
+                    results.innerHTML += '<p>This means either:</p>';
+                    results.innerHTML += '<ul><li>No bids have been placed</li><li>Contract address is wrong</li></ul>';
+                } else {
+                    results.innerHTML += `<p class="success">✅ Found ${logs.length} events from contract</p>`;
+                    
+                    logs.forEach((log, i) => {
+                        results.innerHTML += `
+                            <div class="event">
+                                <strong>Event ${i + 1}:</strong><br>
+                                Block: ${parseInt(log.blockNumber, 16)}<br>
+                                TxHash: ${log.transactionHash}<br>
+                                Topics: ${log.topics.length} topics<br>
+                                Topic[0]: ${log.topics[0]}<br>
+                                Data: ${log.data}
+                            </div>
+                        `;
+                    });
+                }
+
+                // Now check getAuctionBids
+                results.innerHTML += '<hr><h2>Checking getAuctionBids(1)...</h2>';
+                
+                // Call getAuctionBids(1)
+                // Function signature: getAuctionBids(uint256)
+                const functionSelector = '0x8c0c5e95'; // keccak256("getAuctionBids(uint256)").slice(0,8)
+                const auctionId = '0000000000000000000000000000000000000000000000000000000000000001'; // 1 in hex padded
+                const callData = functionSelector + auctionId;
+
+                const result = await rpcCall('eth_call', [{
+                    to: CONTRACT_ADDRESS,
+                    data: callData
+                }, 'latest']);
+
+                console.log('getAuctionBids(1) result:', result);
+
+                // Parse result
+                // Result format: 0x followed by hex data
+                // If it's just 0x0000...0020 0000...0000, it means empty array
+                
+                if (result === '0x0000000000000000000000000000000000000000000000000000000000000020' + '0000000000000000000000000000000000000000000000000000000000000000') {
+                    results.innerHTML += '<p class="error">❌ getAuctionBids(1) returned EMPTY ARRAY</p>';
+                    results.innerHTML += '<p><strong>PROBLEM FOUND:</strong> The contract is receiving bids but NOT storing them in the array!</p>';
+                } else {
+                    results.innerHTML += '<p class="success">✅ getAuctionBids(1) returned data:</p>';
+                    results.innerHTML += `<pre>${result}</pre>`;
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                results.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Auto-run on load
+        window.onload = checkEvents;
+    </script>
+</body>
+</html>

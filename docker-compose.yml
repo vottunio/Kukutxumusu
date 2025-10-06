@@ -34,6 +34,30 @@ services:
       - kukuxumusu-network
     command: redis-server --appendonly yes
 
+  # Worker Node.js (Event Listener + Mint Executor)
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: kukuxumusu-worker
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_dev@postgres:5432/kukuxumusu?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - NEXT_PUBLIC_BASE_RPC_URL=${NEXT_PUBLIC_BASE_RPC_URL}
+      - NEXT_PUBLIC_STORY_RPC_URL=${NEXT_PUBLIC_STORY_RPC_URL}
+      - NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=${NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS}
+      - NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=${NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}
+      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kukuxumusu-network
+    restart: unless-stopped
+
   # Adminer para administrar la base de datos (opcional)
   adminer:
     image: adminer:latest

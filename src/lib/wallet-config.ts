@@ -8,6 +8,7 @@ import { WAGMI_CHAINS } from '@/config/network'
 const baseGasConfig = {
   maxFeePerGas: 2000000000n, // 2 gwei
   maxPriorityFeePerGas: 1000000000n, // 1 gwei
+  gas: 500000n, // 500k gas limit por defecto
 }
 
 // Configuración de RainbowKit con optimizaciones de gas

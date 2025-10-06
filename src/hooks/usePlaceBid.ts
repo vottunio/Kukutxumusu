@@ -180,7 +180,7 @@ export function usePlaceBid() {
         value: isNativeETH ? amount : 0n, // Enviar ETH si es nativo
         chainId: baseSepolia.id,
         // Configuración de gas optimizada
-        gas: gasEstimate ? gasEstimate + (gasEstimate * 10n / 100n) : undefined, // +10% buffer
+        gas: gasEstimate ? gasEstimate + (gasEstimate * 20n / 100n) : 400000n, // +20% buffer o 400k por defecto
         ...baseGasConfig,
       })
 

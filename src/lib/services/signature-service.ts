@@ -37,22 +37,20 @@ export interface SignedBidData extends BidSignatureData {
  * We're trying the original encodePacked method since EIP-712 failed
  */
 function generateMessageHash(data: BidSignatureData): Hex {
-  // Try method 1: Direct byte concatenation (like Go implementation)
-  // This mimics: crypto.Keccak256(tokenAddress.Bytes(), amount.Bytes(), ...)
-  const tokenAddressBytes = data.tokenAddress.slice(2) // Remove 0x
-  const bidderBytes = data.bidder.slice(2) // Remove 0x
-  
-  // Convert to 32-byte padded hex strings
-  const amountHex = data.amount.toString(16).padStart(64, '0')
-  const valueInUSDHex = data.valueInUSD.toString(16).padStart(64, '0')
-  const auctionIdHex = BigInt(data.auctionId).toString(16).padStart(64, '0')
-  const timestampHex = BigInt(data.timestamp).toString(16).padStart(64, '0')
-  
-  // Concatenate all bytes: tokenAddress(20) + amount(32) + valueInUSD(32) + bidder(20) + auctionId(32) + timestamp(32)
-  const concatenated = `0x${tokenAddressBytes}${amountHex}${valueInUSDHex}${bidderBytes}${auctionIdHex}${timestampHex}`
-  
-  // Hash the concatenated bytes
-  return keccak256(concatenated as `0x${string}`)
+  // EXACT MATCH with contract: keccak256(abi.encodePacked(auctionId, msg.sender, paymentToken, amount, valueInUSD))
+  const encoded = encodePacked(
+    ['uint256', 'address', 'address', 'uint256', 'uint256'],
+    [
+      BigInt(data.auctionId),
+      data.bidder,
+      data.tokenAddress,
+      data.amount,
+      data.valueInUSD,
+    ]
+  )
+
+  // Hash the encoded data (this will be passed to toEthSignedMessageHash() in the contract)
+  return keccak256(encoded)
 }
 
 /**
@@ -116,28 +114,17 @@ export async function signBidData(data: BidSignatureData): Promise<SignedBidData
     timestamp: data.timestamp,
   })
 
-  // Generate message hash
+  // Generate message hash (exactly like contract)
   const messageHash = generateMessageHash(data)
   console.log('🔐 [SIGNATURE] Generated message hash:', messageHash)
 
   try {
-    // Sign the hash
+    // Sign with Ethereum Signed Message prefix (like contract uses toEthSignedMessageHash())
     const signature = await trustedSigner.signMessage({
       message: { raw: messageHash },
     })
     
     console.log('🔐 [SIGNATURE] Generated signature:', signature)
-    console.log('🔐 [SIGNATURE] Signature length:', signature.length)
-    
-    // Validate signature format
-    if (signature.length !== 132) {
-      throw new Error(`Invalid signature length: ${signature.length}, expected 132`)
-    }
-    
-    if (!signature.startsWith('0x')) {
-      throw new Error('Signature must start with 0x')
-    }
-
     console.log('✅ [SIGNATURE] Signature generated successfully')
 
     return {

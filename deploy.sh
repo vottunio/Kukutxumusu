@@ -73,10 +73,11 @@ success "Código actualizado"
 
 # Build y deploy
 log "🔨 Construyendo y desplegando servicios..."
+log "📝 Mostrando logs en tiempo real..."
 if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" up -d --build
+    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" up --build -d --remove-orphans 2>&1 | tee build.log
 else
-    docker-compose -f "$COMPOSE_FILE" up -d --build
+    docker-compose -f "$COMPOSE_FILE" up --build -d --remove-orphans 2>&1 | tee build.log
 fi
 
 # Verificar que los servicios estén corriendo

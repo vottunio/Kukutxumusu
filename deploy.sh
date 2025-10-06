@@ -84,14 +84,21 @@ fi
 log "🔍 Verificando servicios..."
 sleep 10
 
+# Definir comando base de docker-compose
+if [ -f ".env.$ENVIRONMENT" ]; then
+    COMPOSE_CMD="docker-compose -f $COMPOSE_FILE --env-file .env.$ENVIRONMENT"
+else
+    COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
+fi
+
 # Verificar estado de los servicios
-if docker-compose -f "$COMPOSE_FILE" ps | grep -q "Up"; then
+if $COMPOSE_CMD ps | grep -q "Up"; then
     success "Deploy completado exitosamente!"
-    
+
     # Mostrar estado de los servicios
     log "📊 Estado de los servicios:"
-    docker-compose -f "$COMPOSE_FILE" ps
-    
+    $COMPOSE_CMD ps
+
     # Mostrar URLs según el entorno
     if [ "$ENVIRONMENT" = "staging" ]; then
         log "🌐 Staging disponible en: http://localhost:8080"
@@ -99,13 +106,13 @@ if docker-compose -f "$COMPOSE_FILE" ps | grep -q "Up"; then
     else
         log "🌐 Producción disponible en: https://kukuxumusu.com"
     fi
-    
+
 else
     error "Algunos servicios no se iniciaron correctamente"
 fi
 
 # Mostrar logs de errores si los hay
 log "📋 Últimos logs (últimas 20 líneas):"
-docker-compose -f "$COMPOSE_FILE" logs --tail=20
+$COMPOSE_CMD logs --tail=20
 
 success "🎉 Deploy a $ENVIRONMENT completado!"

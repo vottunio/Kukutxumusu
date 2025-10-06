@@ -37,6 +37,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID}
+        - NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=${NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS}
+        - NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=${NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}
+        - NEXT_PUBLIC_NETWORK_MODE=${NEXT_PUBLIC_NETWORK_MODE}
     container_name: kukuxumusu-frontend-prod
     environment:
       - NODE_ENV=production
@@ -58,31 +63,31 @@ services:
       - kukuxumusu-prod-network
     restart: unless-stopped
 
-  # Backend Go Relayer (producción)
-  relayer:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: kukuxumusu-relayer-prod
-    environment:
-      - DATABASE_URL=postgres://kukuxumusu:${POSTGRES_PASSWORD}@postgres:5432/kukuxumusu_relayer?sslmode=disable
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - BASE_RPC_URL=${BASE_RPC_URL}
-      - STORY_RPC_URL=${STORY_RPC_URL}
-      - PAYMENT_CONTRACT_ADDRESS=${PAYMENT_CONTRACT_ADDRESS}
-      - NFT_CONTRACT_ADDRESS=${NFT_CONTRACT_ADDRESS}
-      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
-      - PINATA_API_KEY=${PINATA_API_KEY}
-      - PINATA_SECRET=${PINATA_SECRET}
-      - ENVIRONMENT=production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - kukuxumusu-prod-network
-    restart: unless-stopped
+  # Backend Go Relayer (producción) - DESHABILITADO - Se ejecutará en contenedor separado
+  # relayer:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: kukuxumusu-relayer-prod
+  #   environment:
+  #     - DATABASE_URL=postgres://kukuxumusu:${POSTGRES_PASSWORD}@postgres:5432/kukuxumusu_relayer?sslmode=disable
+  #     - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+  #     - BASE_RPC_URL=${BASE_RPC_URL}
+  #     - STORY_RPC_URL=${STORY_RPC_URL}
+  #     - PAYMENT_CONTRACT_ADDRESS=${PAYMENT_CONTRACT_ADDRESS}
+  #     - NFT_CONTRACT_ADDRESS=${NFT_CONTRACT_ADDRESS}
+  #     - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
+  #     - PINATA_API_KEY=${PINATA_API_KEY}
+  #     - PINATA_SECRET=${PINATA_SECRET}
+  #     - ENVIRONMENT=production
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #   networks:
+  #     - kukuxumusu-prod-network
+  #   restart: unless-stopped
 
   # Nginx reverse proxy (producción)
   nginx:
@@ -97,7 +102,6 @@ services:
       - ./nginx/logs:/var/log/nginx
     depends_on:
       - frontend
-      - relayer
     networks:
       - kukuxumusu-prod-network
     restart: unless-stopped

@@ -13,7 +13,10 @@
 
 RELAYER_DATABASE_URL=postgres://kukuxumusu:kukuxumusu_dev@localhost:5432/kukuxumusu_relayer?sslmode=disable
 RELAYER_DATABASE_URL=postgres://kukuxumusu:kukuxumusu_dev@localhost:5432/kukuxumusu_relayer?sslmode=disable
+Password: Según el environment (dev: kukuxumusu_dev, staging: kukuxumusu_staging, prod: variable ${POSTGRES_PASSWORD})
 
+Relayer: 0x1Df7E98253C2B259892E6fc904dbb0f3532E7843
+ef0874b7f213a1c14f5dfa4f018d4224aa321ebc1dc87e9598ca8cc3602b131b
 ---
 
 ## Overview

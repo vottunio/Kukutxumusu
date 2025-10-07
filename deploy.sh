@@ -82,7 +82,8 @@ success "Código actualizado"
 
 # Build (primero construir para ver logs)
 log "🔨 Construyendo imágenes..."
-docker-compose --progress plain -f "$COMPOSE_FILE" build 2>&1 | tee build.log
+export BUILDKIT_PROGRESS=plain
+docker-compose --progress plain -f "$COMPOSE_FILE" build --no-cache 2>&1 | tee build.log
 success "Imágenes construidas"
 
 # Deploy (luego levantar servicios)

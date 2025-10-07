@@ -71,34 +71,30 @@ log "📥 Actualizando código desde Git..."
 git pull origin master
 success "Código actualizado"
 
+# Cargar variables de entorno
+if [ -f ".env.$ENVIRONMENT" ]; then
+    log "📝 Cargando variables de .env.$ENVIRONMENT..."
+    set -a
+    source ".env.$ENVIRONMENT"
+    set +a
+fi
+
 # Build (primero construir para ver logs)
 log "🔨 Construyendo imágenes..."
-if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose --progress plain -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build 2>&1 | tee build.log
-else
-    docker-compose --progress plain -f "$COMPOSE_FILE" build 2>&1 | tee build.log
-fi
+docker-compose --progress plain -f "$COMPOSE_FILE" build 2>&1 | tee build.log
 success "Imágenes construidas"
 
 # Deploy (luego levantar servicios)
 log "🚀 Desplegando servicios..."
 log "📦 Creando contenedores..."
-if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" up -d --remove-orphans --progress=plain
-else
-    docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --progress=plain
-fi
+docker-compose --progress plain -f "$COMPOSE_FILE" up -d --remove-orphans
 
 # Verificar que los servicios estén corriendo
 log "🔍 Verificando servicios..."
 sleep 10
 
 # Definir comando base de docker-compose
-if [ -f ".env.$ENVIRONMENT" ]; then
-    COMPOSE_CMD="docker-compose -f $COMPOSE_FILE --env-file .env.$ENVIRONMENT"
-else
-    COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
-fi
+COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
 
 # Verificar estado de los servicios
 if $COMPOSE_CMD ps | grep -q "Up"; then

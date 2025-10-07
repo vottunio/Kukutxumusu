@@ -82,8 +82,21 @@ success "Código actualizado"
 
 # Build (primero construir para ver logs)
 log "🔨 Construyendo imágenes..."
-export BUILDKIT_PROGRESS=plain
-docker-compose --progress plain -f "$COMPOSE_FILE" build --no-cache 2>&1 | tee build.log
+
+# Construir cada servicio por separado para ver logs
+log "📦 Construyendo frontend..."
+docker build -t kukuxumusu-frontend:staging \
+  --build-arg NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID="$NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID" \
+  --build-arg NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS="$NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS" \
+  --build-arg NEXT_PUBLIC_NFT_CONTRACT_ADDRESS="$NEXT_PUBLIC_NFT_CONTRACT_ADDRESS" \
+  --build-arg NEXT_PUBLIC_NETWORK_MODE="$NEXT_PUBLIC_NETWORK_MODE" \
+  --build-arg NEXT_PUBLIC_BASE_RPC_URL="$NEXT_PUBLIC_BASE_RPC_URL" \
+  --build-arg NEXT_PUBLIC_STORY_RPC_URL="$NEXT_PUBLIC_STORY_RPC_URL" \
+  -f Dockerfile .
+
+log "📦 Construyendo worker..."
+docker build -t kukuxumusu-worker:staging -f worker/Dockerfile .
+
 success "Imágenes construidas"
 
 # Deploy (luego levantar servicios)

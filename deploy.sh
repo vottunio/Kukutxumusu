@@ -122,7 +122,7 @@ if $COMPOSE_CMD ps | grep -q "Up"; then
 
     # Mostrar URLs según el entorno
     if [ "$ENVIRONMENT" = "staging" ]; then
-        log "🌐 Staging disponible en: http://localhost:8080"
+        log "🌐 Staging disponible en: http://adarbakar.vottun.tech"
         log "🗄️  Adminer disponible en: http://localhost:8081"
     else
         log "🌐 Producción disponible en: https://kukuxumusu.com"

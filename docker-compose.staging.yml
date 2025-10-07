@@ -82,7 +82,7 @@ services:
     image: nginx:alpine
     container_name: kukuxumusu-nginx-staging
     ports:
-      - "8080:80"  # Puerto diferente para staging
+      - "80:80"  # Puerto estándar HTTP
     volumes:
       - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf
     depends_on:

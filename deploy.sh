@@ -73,13 +73,12 @@ success "Código actualizado"
 
 # Build (primero construir para ver logs)
 log "🔨 Construyendo imágenes..."
-log "📝 Mostrando logs en tiempo real..."
-export DOCKER_BUILDKIT=1
 if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build --progress=plain
+    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build --progress=plain 2>&1 | tee build.log
 else
-    docker-compose -f "$COMPOSE_FILE" build --progress=plain
+    docker-compose -f "$COMPOSE_FILE" build --progress=plain 2>&1 | tee build.log
 fi
+success "Imágenes construidas"
 
 # Deploy (luego levantar servicios)
 log "🚀 Desplegando servicios..."

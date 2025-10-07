@@ -3,7 +3,7 @@
  * Listens to Base blockchain for auction/payment events
  */
 
-import { createPublicClient, http, parseAbiItem, type Log } from 'viem'
+import { createPublicClient, http, parseAbiItem } from 'viem'
 import { baseSepolia } from 'viem/chains'
 import { prisma } from '../lib/prisma'
 // import { AuctionStatus, MintStatus, NFTStatus } from '@prisma/client'

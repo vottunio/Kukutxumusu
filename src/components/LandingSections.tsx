@@ -52,7 +52,7 @@ export function LandingSections() {
               About Adarbakar
             </h2>
             <p className="text-xl text-gray-600 mb-12 leading-relaxed">
-              We're pioneering the future of cross-chain NFT marketplaces by combining the best of multiple blockchain networks. 
+              We&apos;re pioneering the future of cross-chain NFT marketplaces by combining the best of multiple blockchain networks. 
               Our platform bridges the gap between different ecosystems, creating a seamless experience for collectors and creators alike.
             </p>
             

@@ -45,18 +45,27 @@ fi
 
 log "🚀 Iniciando deploy a $ENVIRONMENT..."
 
+# Cargar variables de entorno PRIMERO
+if [ -f ".env.$ENVIRONMENT" ]; then
+    log "📝 Cargando variables de .env.$ENVIRONMENT..."
+    set -a
+    source ".env.$ENVIRONMENT"
+    set +a
+else
+    warning "No se encontró .env.$ENVIRONMENT, usando .env por defecto"
+    if [ -f ".env" ]; then
+        set -a
+        source ".env"
+        set +a
+    else
+        error "No se encontró archivo .env"
+    fi
+fi
+
 # Verificar que existe el archivo de compose
 COMPOSE_FILE="docker-compose.$ENVIRONMENT.yml"
 if [ ! -f "$COMPOSE_FILE" ]; then
     error "No se encontró el archivo $COMPOSE_FILE"
-fi
-
-# Verificar que existe el archivo .env
-if [ ! -f ".env.$ENVIRONMENT" ]; then
-    warning "No se encontró .env.$ENVIRONMENT, usando .env por defecto"
-    if [ ! -f ".env" ]; then
-        error "No se encontró archivo .env"
-    fi
 fi
 
 # Hacer backup de la versión anterior (solo si existe)
@@ -70,14 +79,6 @@ fi
 log "📥 Actualizando código desde Git..."
 git pull origin master
 success "Código actualizado"
-
-# Cargar variables de entorno
-if [ -f ".env.$ENVIRONMENT" ]; then
-    log "📝 Cargando variables de .env.$ENVIRONMENT..."
-    set -a
-    source ".env.$ENVIRONMENT"
-    set +a
-fi
 
 # Build (primero construir para ver logs)
 log "🔨 Construyendo imágenes..."

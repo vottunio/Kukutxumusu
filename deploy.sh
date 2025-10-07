@@ -74,9 +74,9 @@ success "Código actualizado"
 # Build (primero construir para ver logs)
 log "🔨 Construyendo imágenes..."
 if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build --progress=plain 2>&1 | tee build.log
+    docker-compose --progress plain -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build 2>&1 | tee build.log
 else
-    docker-compose -f "$COMPOSE_FILE" build --progress=plain 2>&1 | tee build.log
+    docker-compose --progress plain -f "$COMPOSE_FILE" build 2>&1 | tee build.log
 fi
 success "Imágenes construidas"
 

@@ -7,7 +7,7 @@ import { createWalletClient, createPublicClient, http, parseAbi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { odysseyTestnet } from 'viem/chains'
 import { prisma } from '../lib/prisma'
-import { MintStatus, NFTStatus, AuctionStatus } from '@prisma/client'
+// import { MintStatus, NFTStatus, AuctionStatus } from '@prisma/client'
 
 // Get config from env
 const STORY_RPC_URL = process.env.NEXT_PUBLIC_STORY_RPC_URL || process.env.STORY_RPC_URL
@@ -76,7 +76,7 @@ export class MintExecutor {
     // Get pending mints
     const pendingMints = await prisma.mintTransaction.findMany({
       where: {
-        status: MintStatus.PENDING,
+        status: 'PENDING',
         attempts: {
           lt: this.maxRetries,
         },
@@ -113,7 +113,7 @@ export class MintExecutor {
       await prisma.mintTransaction.update({
         where: { id: mintTx.id },
         data: {
-          status: MintStatus.PROCESSING,
+          status: 'PROCESSING',
           attempts: mintTx.attempts + 1,
         },
       })
@@ -137,7 +137,7 @@ export class MintExecutor {
       await prisma.mintTransaction.update({
         where: { id: mintTx.id },
         data: {
-          status: MintStatus.SUBMITTED,
+          status: 'SUBMITTED',
           txHash: hash,
           submittedAt: new Date(),
         },
@@ -153,7 +153,7 @@ export class MintExecutor {
         await prisma.mintTransaction.update({
           where: { id: mintTx.id },
           data: {
-            status: MintStatus.CONFIRMED,
+            status: 'CONFIRMED',
             blockNumber: Number(receipt.blockNumber),
             gasUsed: receipt.gasUsed.toString(),
             confirmedAt: new Date(),
@@ -164,7 +164,7 @@ export class MintExecutor {
         await prisma.nFT.update({
           where: { id: mintTx.nftId },
           data: {
-            status: NFTStatus.MINTED,
+            status: 'MINTED',
             mintedAt: new Date(),
           },
         })
@@ -174,7 +174,7 @@ export class MintExecutor {
           await prisma.auction.update({
             where: { id: mintTx.nft.auction.id },
             data: {
-              status: AuctionStatus.COMPLETED,
+              status: 'COMPLETED',
             },
           })
         }
@@ -188,7 +188,7 @@ export class MintExecutor {
       await prisma.mintTransaction.update({
         where: { id: mintTx.id },
         data: {
-          status: mintTx.attempts + 1 >= this.maxRetries ? MintStatus.FAILED : MintStatus.PENDING,
+          status: mintTx.attempts + 1 >= this.maxRetries ? 'FAILED' : 'PENDING',
           lastError: error.message || 'Unknown error',
         },
       })
@@ -198,7 +198,7 @@ export class MintExecutor {
         await prisma.nFT.update({
           where: { id: mintTx.nftId },
           data: {
-            status: NFTStatus.FAILED,
+            status: 'FAILED',
           },
         })
 

@@ -10,7 +10,7 @@ import { getTrustedSignerAddress } from '@/lib/services/signature-service'
 import { signBidData } from '@/lib/services/signature-service'
 import { isAddress, type Address } from 'viem'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     console.log('🔍 [DEBUG-SIGNATURE] Debug request received')
 

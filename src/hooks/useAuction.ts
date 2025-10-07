@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useReadContract } from 'wagmi'
 import { useWallet } from './useWallet'
 import { baseSepolia } from '@/lib/chains'
@@ -27,13 +28,18 @@ export interface Bid {
   amount: bigint
   valueInUSD: bigint
   timestamp: bigint
+  transactionHash?: string // Hash de la transacción (opcional)
 }
+
 
 /**
  * Hook para leer datos de una subasta específica
  */
 export function useAuction(auctionId: number | bigint) {
   const { isConnected } = useWallet()
+  
+  // Estados (todos los useState al principio)
+  const [bidHashes, setBidHashes] = useState<Record<string, string>>({})
 
   // Leer datos principales de la subasta
   const { data: auctionData, isLoading: isLoadingAuction, refetch: refetchAuction } = useReadContract({
@@ -48,7 +54,7 @@ export function useAuction(auctionId: number | bigint) {
     },
   })
 
-  // Leer lista de bids
+  // Leer lista de bids desde el contrato (como antes)
   const { data: bidsData, isLoading: isLoadingBids, refetch: refetchBids } = useReadContract({
     address: PAYMENT_CONTRACT_ADDRESS,
     abi: PaymentABI,
@@ -60,6 +66,37 @@ export function useAuction(auctionId: number | bigint) {
       refetchInterval: 5000, // Actualizar cada 5 segundos
     },
   })
+  
+  // Función para obtener solo los hashes desde la BD
+  const fetchBidHashes = async (auctionId: number | bigint) => {
+    if (!auctionId) return
+    
+    try {
+      console.log('📊 [useAuction] Fetching bid hashes from database for auction:', auctionId)
+      const response = await fetch(`/api/auctions/${auctionId}/bids`)
+      const data = await response.json()
+      
+      if (data.success) {
+        // Crear un mapa de hashes usando la misma clave que antes
+        const hashMap: Record<string, string> = {}
+        data.bids.forEach((bid: any) => {
+          const key = `${bid.bidder}-${bid.timestamp}`
+          hashMap[key] = bid.transactionHash
+        })
+        setBidHashes(hashMap)
+        console.log('📊 [useAuction] Retrieved bid hashes from DB:', hashMap)
+      }
+    } catch (error) {
+      console.error('Error fetching bid hashes from DB:', error)
+    }
+  }
+
+  // Obtener hashes cuando cambia el auctionId
+  useEffect(() => {
+    if (auctionId > 0) {
+      fetchBidHashes(auctionId)
+    }
+  }, [auctionId])
 
   // Debug: Ver data cruda del contrato
   if (typeof window !== 'undefined' && bidsData !== undefined) {
@@ -81,17 +118,21 @@ export function useAuction(auctionId: number | bigint) {
     antiSnipingTrigger: (auctionData as any)[10],
   } : null
 
-  // Parsear lista de bids
-  const bids: Bid[] = bidsData ? (bidsData as any[]).map((bid: any) => ({
-    bidder: bid.bidder,
-    token: bid.token,
-    amount: bid.amount,
-    valueInUSD: bid.valueInUSD,
-    timestamp: bid.timestamp,
-  })) : []
+  // Parsear lista de bids (como antes) + agregar hashes desde BD
+  const bids: Bid[] = bidsData ? (bidsData as any[]).map((bid: any) => {
+    const key = `${bid.bidder}-${bid.timestamp}`
+    return {
+      bidder: bid.bidder,
+      token: bid.token,
+      amount: bid.amount,
+      valueInUSD: bid.valueInUSD,
+      timestamp: bid.timestamp,
+      transactionHash: bidHashes[key], // Hash desde la BD
+    }
+  }) : []
 
   // Debug log
-  if (typeof window !== 'undefined' && bidsData) {
+  if (typeof window !== 'undefined' && bids.length > 0) {
     console.log(`👀 [useAuction] Bids for auction ${auctionId}:`, bids.length, bids)
   }
 
@@ -114,6 +155,9 @@ export function useAuction(auctionId: number | bigint) {
     refetch: () => {
       refetchAuction()
       refetchBids()
+      if (auctionId > 0) {
+        fetchBidHashes(auctionId)
+      }
     },
   }
 }
@@ -151,21 +195,18 @@ export function useActiveAuction() {
  * Hook para obtener todas las subastas activas ordenadas por tiempo restante
  */
 export function useActiveAuctions() {
-  //const { isConnected } = useWallet()
   const { totalAuctions } = useActiveAuction()
+  const [allAuctionIds, setAllAuctionIds] = useState<number[]>([])
 
-  // Array de IDs de todas las subastas
-  const auctionIds = Array.from({ length: totalAuctions }, (_, i) => i)
-
-  // Devolver todos los IDs de subastas
-  // El componente que use este hook decidirá cuáles están activas
-  const activeAuctionIds = auctionIds
-  const totalActive = activeAuctionIds.length
+  // Memoizar el array para evitar recrearlo en cada render
+  useEffect(() => {
+    setAllAuctionIds(Array.from({ length: totalAuctions }, (_, i) => i))
+  }, [totalAuctions])
 
   return {
-    activeAuctionIds,
-    activeAuctions: [], // Temporalmente vacío
-    totalActive,
+    activeAuctionIds: allAuctionIds,
+    activeAuctions: [],
+    totalActive: totalAuctions,
   }
 }
 

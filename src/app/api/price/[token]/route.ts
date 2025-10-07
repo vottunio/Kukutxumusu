@@ -24,7 +24,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTokenPrice } from '@/lib/services/price-oracle'
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { token: string } }
 ) {
   try {

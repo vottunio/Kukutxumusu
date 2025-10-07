@@ -10,7 +10,7 @@ These are the deployed contract addresses on Base and Story Protocol:
 
 ```bash
 # Base Sepolia - Payment Contract
-NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=0x535683a04a9bFE0F9EF102336706A981d12fF125
+NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=0xa04cEda1fc7eeB2559d2C3936cA678D91b4530E3
 
 # Story Protocol Testnet - NFT Factory Contract
 NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=0xd9b3913250035D6a2621Cefc9574f7F8c6e5F2B7

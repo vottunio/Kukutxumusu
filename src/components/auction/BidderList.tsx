@@ -5,13 +5,15 @@ import { Badge } from '@/components/ui/badge'
 import { Bid } from '@/hooks/useAuction'
 import { formatEther } from 'viem'
 import { getTokenSymbol } from '@/config/tokens'
+import { ExternalLink } from 'lucide-react'
 
 interface BidderListProps {
   bids: Bid[]
   currentHighestBidder?: string
+  bidTransactionHashes?: Record<string, string> // Hashes de transacción opcionales
 }
 
-export function BidderList({ bids, currentHighestBidder }: BidderListProps) {
+export function BidderList({ bids, currentHighestBidder, bidTransactionHashes = {} }: BidderListProps) {
   if (bids.length === 0) {
     return (
       <Card>
@@ -44,6 +46,10 @@ export function BidderList({ bids, currentHighestBidder }: BidderListProps) {
             const tokenName = getTokenSymbol(bid.token)
             const isHighest = bid.bidder.toLowerCase() === currentHighestBidder?.toLowerCase()
             const date = new Date(Number(bid.timestamp) * 1000)
+            
+            // Buscar el hash de transacción para este bid
+            const bidKey = `${bid.bidder}-${bid.token}-${bid.amount}`
+            const transactionHash = bidTransactionHashes[bidKey] || bid.transactionHash
 
             return (
               <div
@@ -63,9 +69,25 @@ export function BidderList({ bids, currentHighestBidder }: BidderListProps) {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {date.toLocaleString()}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-gray-500">
+                      {date.toLocaleString()}
+                    </p>
+                    {transactionHash && (
+                      <a
+                        href={`https://sepolia.basescan.org/tx/${transactionHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                        title="View transaction on BaseScan"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                          <span className="font-mono">
+                            {transactionHash.slice(0, 6)}...{transactionHash.slice(-4)}
+                          </span>
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-lg">

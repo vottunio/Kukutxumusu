@@ -335,7 +335,7 @@ Based on `KukuxumusuNFTFactory_ABI.json`, the contract includes:
 - [⚠️] Test basic image upload and quality verification - *Implemented but needs end-to-end testing*
 
 **📋 Day 1 Deliverables:**
-- [✅] Functional Payment smart contract on Base - *Deployed at 0x535683a04a9bFE0F9EF102336706A981d12fF125*
+- [✅] Functional Payment smart contract on Base - *Deployed at 0xa04cEda1fc7eeB2559d2C3936cA678D91b4530E3*
 - [✅] Functional NFT Factory on Story Protocol - *Deployed at 0xd9b3913250035D6a2621Cefc9574f7F8c6e5F2B7*
 - [ ] Backend/Relayer configured and listening events
 - [✅] Frontend with multi-chain wallet connection working - *RainbowKit 2.2.8 + 4 networks (Base/Story mainnet & testnet)*

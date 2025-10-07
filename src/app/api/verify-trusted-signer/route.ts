@@ -13,7 +13,7 @@ import PaymentABI from '../../../../contracts/abis/KukuxumusuPayment_ABI.json'
 
 const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     console.log('🔍 [VERIFY-TRUSTED-SIGNER] Checking trusted signer configuration...')
 

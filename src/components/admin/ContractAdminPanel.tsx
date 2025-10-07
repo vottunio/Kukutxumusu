@@ -6,16 +6,19 @@ import { Button } from '@/components/ui/button'
 import { useWallet } from '@/hooks/useWallet'
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { baseSepolia } from '@/lib/chains'
+import { NFT_CHAIN } from '@/config/network'
 import PaymentABI from '../../../contracts/abis/KukuxumusuPayment_ABI.json'
+import NFTABI from '../../../contracts/abis/KukuxumusuNFT_ABI.json'
 import { getTokenByAddress } from '@/config/tokens'
 
 const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
+const NFT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS as `0x${string}`
 
 // Role constants from contract
 const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000'
 const AUCTION_CREATOR_ROLE = '0x' + Buffer.from('AUCTION_CREATOR_ROLE').toString('hex').padEnd(64, '0')
 
-type Tab = 'tokens' | 'roles' | 'config' | 'emergency'
+type Tab = 'tokens' | 'roles' | 'config' | 'emergency' | 'nft'
 
 export function ContractAdminPanel() {
   const {  isConnected } = useWallet()
@@ -42,6 +45,10 @@ export function ContractAdminPanel() {
   // Withdraw State
   const [withdrawToken, setWithdrawToken] = useState('')
   const [withdrawAmount, setWithdrawAmount] = useState('')
+
+  // NFT Contract State
+  const [minterAddress, setMinterAddress] = useState('')
+  const [minterAuthorized, setMinterAuthorized] = useState(true)
 
   // Token Management Functions
   const handleSetAllowedToken = async () => {
@@ -147,10 +154,31 @@ export function ContractAdminPanel() {
     })
   }
 
+  // NFT Contract Functions
+  const handleSetAuthorizedMinter = async () => {
+    if (!minterAddress) return
+    
+    // Debug: Log the chain configuration
+    console.log('🔧 [Admin Panel] NFT_CHAIN config:', {
+      id: NFT_CHAIN.id,
+      name: NFT_CHAIN.name,
+      networkMode: process.env.NEXT_PUBLIC_NETWORK_MODE || 'testnet'
+    })
+    
+    writeContract({
+      address: NFT_CONTRACT_ADDRESS,
+      abi: NFTABI,
+      functionName: 'setAuthorizedMinter',
+      args: [minterAddress as `0x${string}`, minterAuthorized],
+      chainId: NFT_CHAIN.id,
+    })
+  }
+
   const tabs = [
     { id: 'tokens' as Tab, label: 'Token Management' },
     { id: 'roles' as Tab, label: 'Roles' },
     { id: 'config' as Tab, label: 'Configuration' },
+    { id: 'nft' as Tab, label: 'NFT Contract' },
     { id: 'emergency' as Tab, label: 'Emergency' },
   ]
 
@@ -329,6 +357,48 @@ export function ContractAdminPanel() {
                 </Button>
                 <p className="text-xs text-gray-500">
                   ℹ️ Use: <code className="bg-gray-100 px-1 rounded">{process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}</code>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* NFT Contract Tab */}
+        {activeTab === 'nft' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Authorize/Revoke Minter</h3>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={minterAddress}
+                  onChange={(e) => setMinterAddress(e.target.value)}
+                  placeholder="Relayer Address (0x...)"
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={minterAuthorized}
+                      onChange={() => setMinterAuthorized(true)}
+                    />
+                    <span>Authorize</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      checked={!minterAuthorized}
+                      onChange={() => setMinterAuthorized(false)}
+                    />
+                    <span>Revoke</span>
+                  </label>
+                </div>
+                <Button onClick={handleSetAuthorizedMinter} disabled={!isConnected || isPending}>
+                  {isPending ? 'Processing...' : 'Set Minter Authorization'}
+                </Button>
+                <p className="text-xs text-gray-500">
+                  ℹ️ Use the relayer wallet address that needs permission to mint NFTs
                 </p>
               </div>
             </div>

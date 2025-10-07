@@ -17,18 +17,15 @@ export async function GET(request: Request) {
     const offset = parseInt(searchParams.get('offset') || '0')
     const owner = searchParams.get('owner') // Filter by owner address
 
-    // Get total supply of the first collection (collectionId = 0)
-    // TODO: Support multiple collections
-    const collectionId = BigInt(0)
-
-    const totalSupply = await publicClient.readContract({
+    // Get total minted NFTs
+    const totalMinted = await publicClient.readContract({
       address: NFT_CONTRACT_ADDRESS,
       abi: NFTFactoryABI,
-      functionName: 'getCollectionSupply',
-      args: [collectionId],
+      functionName: 'totalMinted',
+      args: [],
     }) as bigint
 
-    const total = Number(totalSupply)
+    const total = Number(totalMinted)
 
     if (total === 0) {
       return NextResponse.json({
@@ -46,15 +43,8 @@ export async function GET(request: Request) {
     const nftIds = Array.from({ length: total }, (_, i) => i).slice(offset, offset + limit)
 
     // Fetch NFT data for each ID
-    const nftPromises = nftIds.map(async (localId) => {
+    const nftPromises = nftIds.map(async (tokenId) => {
       try {
-        // Get global token ID
-        const tokenId = await publicClient.readContract({
-          address: NFT_CONTRACT_ADDRESS,
-          abi: NFTFactoryABI,
-          functionName: 'getGlobalTokenId',
-          args: [collectionId, BigInt(localId)],
-        }) as bigint
 
         // Get owner
         const ownerAddress = await publicClient.readContract({
@@ -92,19 +82,17 @@ export async function GET(request: Request) {
         }
 
         return {
-          collectionId: collectionId.toString(),
-          localId,
-          globalTokenId: tokenId.toString(),
+          tokenId: tokenId.toString(),
           owner: ownerAddress,
           tokenURI,
           metadata: metadata || {
-            name: `Kukuxumusu #${localId}`,
+            name: `Kukuxumusu #${tokenId}`,
             description: 'Metadata not available',
             image: tokenURI ? tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/') : null,
           },
         }
       } catch (error) {
-        console.error(`Error fetching NFT ${localId}:`, error)
+        console.error(`Error fetching NFT ${tokenId}:`, error)
         return null
       }
     })

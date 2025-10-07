@@ -6,7 +6,7 @@
 import { createPublicClient, http, parseAbiItem, type Log } from 'viem'
 import { baseSepolia } from 'viem/chains'
 import { prisma } from '../lib/prisma'
-import { AuctionStatus, MintStatus, NFTStatus } from '@prisma/client'
+// import { AuctionStatus, MintStatus, NFTStatus } from '@prisma/client'
 
 // Get config from env
 const BASE_RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL || process.env.BASE_RPC_URL
@@ -26,9 +26,13 @@ const baseClient = createPublicClient({
   transport: http(BASE_RPC_URL),
 })
 
-// Event signature for AuctionWon (example - adjust based on your contract)
+// Event signatures
 const AUCTION_WON_EVENT = parseAbiItem(
-  'event AuctionWon(uint256 indexed auctionId, address indexed winner, address token, uint256 amount, uint256 valueInUSD)'
+  'event AuctionWon(uint256 indexed auctionId, address indexed winner, address indexed nftContract, uint256 nftId, address token, uint256 finalAmount, uint256 valueInUSD)'
+)
+
+const BID_PLACED_EVENT = parseAbiItem(
+  'event BidPlaced(uint256 indexed auctionId, address indexed bidder, address token, uint256 amount, uint256 valueInUSD, uint256 timestamp)'
 )
 
 export class EventListener {
@@ -75,18 +79,44 @@ export class EventListener {
 
     console.log(`🔍 Checking blocks ${this.lastProcessedBlock + 1n} to ${currentBlock}`)
 
+    // Get BidPlaced events
+    console.log(`🎯 Searching for BidPlaced events at contract: ${PAYMENT_CONTRACT_ADDRESS}`)
+    const bidLogs = await baseClient.getLogs({
+      address: PAYMENT_CONTRACT_ADDRESS,
+      event: BID_PLACED_EVENT,
+      fromBlock: this.lastProcessedBlock + 1n,
+      toBlock: currentBlock,
+    })
+    
+    console.log(`🔍 Found ${bidLogs.length} BidPlaced events`)
+    if (bidLogs.length > 0) {
+      console.log(`🎯 BidPlaced events:`, bidLogs.map(log => ({
+        blockNumber: log.blockNumber,
+        txHash: log.transactionHash,
+        args: log.args
+      })))
+    }
+
+    if (bidLogs.length > 0) {
+      console.log(`📥 Found ${bidLogs.length} BidPlaced event(s)`)
+
+      for (const log of bidLogs) {
+        await this.handleBidPlacedEvent(log)
+      }
+    }
+
     // Get AuctionWon events
-    const logs = await baseClient.getLogs({
+    const auctionLogs = await baseClient.getLogs({
       address: PAYMENT_CONTRACT_ADDRESS,
       event: AUCTION_WON_EVENT,
       fromBlock: this.lastProcessedBlock + 1n,
       toBlock: currentBlock,
     })
 
-    if (logs.length > 0) {
-      console.log(`📥 Found ${logs.length} AuctionWon event(s)`)
+    if (auctionLogs.length > 0) {
+      console.log(`📥 Found ${auctionLogs.length} AuctionWon event(s)`)
 
-      for (const log of logs) {
+      for (const log of auctionLogs) {
         await this.handleAuctionWonEvent(log)
       }
     }
@@ -95,17 +125,96 @@ export class EventListener {
     this.lastProcessedBlock = currentBlock
   }
 
+  private async handleBidPlacedEvent(log: any) {
+    try {
+      const { auctionId, bidder, token, amount, valueInUSD, timestamp } = log.args
+
+      console.log(`🎯 Processing BidPlaced event: auctionId=${auctionId}, bidder=${bidder}, amount=${amount}, valueInUSD=${valueInUSD}`)
+
+      // Check if event already processed
+      const existingEvent = await prisma.eventLog.findFirst({
+        where: {
+          txHash: log.transactionHash,
+          logIndex: log.logIndex,
+        },
+      })
+
+      if (existingEvent) {
+        console.log(`⏭️  Event already processed: ${log.transactionHash}`)
+        return
+      }
+
+      // Find the auction in database
+      const auction = await prisma.auction.findFirst({
+        where: {
+          auctionId: Number(auctionId),
+        },
+        include: {
+          nft: true,
+        },
+      })
+
+      if (!auction) {
+        console.error(`❌ Auction ${auctionId} not found in database`)
+        return
+      }
+
+      // Create bid record
+      await prisma.bid.create({
+        data: {
+          auctionId: auction.id,
+          nftId: auction.nftId,
+          bidderAddress: bidder.toLowerCase(),
+          tokenAddress: token.toLowerCase(),
+          amount: amount.toString(),
+          valueInUSD: valueInUSD.toString(),
+          txHash: log.transactionHash!,
+          blockNumber: Number(log.blockNumber!),
+          timestamp: new Date(Number(timestamp) * 1000),
+          isWinning: false, // Will be updated when auction ends
+        },
+      })
+
+      // Store event in database
+      await prisma.eventLog.create({
+        data: {
+          eventType: 'BidPlaced',
+          contractAddress: PAYMENT_CONTRACT_ADDRESS.toLowerCase(),
+          txHash: log.transactionHash!,
+          blockNumber: Number(log.blockNumber!),
+          logIndex: log.logIndex!,
+          eventData: {
+            auctionId: auctionId.toString(),
+            bidder,
+            token,
+            amount: amount.toString(),
+            timestamp: timestamp.toString(),
+          },
+          processed: true,
+          processedAt: new Date(),
+        },
+      })
+
+      console.log(`✅ BidPlaced event processed and stored: ${log.transactionHash}`)
+
+    } catch (error) {
+      console.error('❌ Error processing BidPlaced event:', error)
+    }
+  }
+
   private async handleAuctionWonEvent(log: any) {
     try {
-      const { auctionId, winner, token, amount, valueInUSD } = log.args as {
+      const { auctionId, winner, nftContract, nftId, token, finalAmount, valueInUSD } = log.args as {
         auctionId: bigint
         winner: string
+        nftContract: string
+        nftId: bigint
         token: string
-        amount: bigint
+        finalAmount: bigint
         valueInUSD: bigint
       }
 
-      console.log(`🎉 Auction ${auctionId} won by ${winner}`)
+      console.log(`🎉 Auction ${auctionId} won by ${winner} - NFT #${nftId} for ${finalAmount} (${valueInUSD} USD)`)
 
       // Check if event already processed (idempotency)
       const existingEvent = await prisma.eventLog.findUnique({
@@ -133,50 +242,65 @@ export class EventListener {
           eventData: {
             auctionId: auctionId.toString(),
             winner,
+            nftContract,
+            nftId: nftId.toString(),
             token,
-            amount: amount.toString(),
+            finalAmount: finalAmount.toString(),
             valueInUSD: valueInUSD.toString(),
           },
           processed: false,
         },
       })
 
-      // Update auction status
-      const auction = await prisma.auction.findUnique({
-        where: { auctionId: Number(auctionId) },
-        include: { nft: true },
+      // Find NFT in database by tokenId (from event)
+      const nft = await prisma.nFT.findFirst({
+        where: { tokenId: Number(nftId) },
       })
 
-      if (!auction) {
-        console.error(`❌ Auction ${auctionId} not found in database`)
+      console.log(`📋 Auction ${auctionId} - Looking for NFT with tokenId=${nftId}`)
+
+      if (!nft) {
+        console.error(`❌ NFT with tokenId ${nftId} not found in database`)
         return
       }
 
-      // Update auction with winner info
-      await prisma.auction.update({
-        where: { id: auction.id },
-        data: {
-          status: AuctionStatus.ENDED,
-          winnerAddress: winner.toLowerCase(),
-          winningToken: token.toLowerCase(),
-          winningAmount: amount.toString(),
-          winningValueUSD: valueInUSD.toString(),
-        },
+      // Try to update auction in database if it exists
+      const existingAuction = await prisma.auction.findFirst({
+        where: { auctionId: Number(auctionId) },
       })
+
+      if (existingAuction) {
+        // Update existing auction with winner info
+        await prisma.auction.update({
+          where: { id: existingAuction.id },
+          data: {
+            status: 'ENDED',
+            winnerAddress: winner.toLowerCase(),
+            winningToken: token.toLowerCase(),
+            winningAmount: finalAmount.toString(),
+            winningValueUSD: valueInUSD.toString(),
+          },
+        })
+        console.log(`✅ Updated auction ${auctionId} in database`)
+      } else {
+        console.log(`⚠️ Auction ${auctionId} not found in database, but continuing with mint`)
+      }
 
       // Create mint transaction in queue
       await prisma.mintTransaction.create({
         data: {
-          nftId: auction.nftId,
+          nftId: nft.id, // Use NFT ID from database
           recipientAddress: winner.toLowerCase(),
-          status: MintStatus.PENDING,
+          status: 'PENDING',
         },
       })
 
+      console.log(`🎯 Mint transaction queued for NFT #${nft.tokenId} to ${winner}`)
+
       // Update NFT status
       await prisma.nFT.update({
-        where: { id: auction.nftId },
-        data: { status: NFTStatus.AUCTION_ENDED },
+        where: { id: nft.id },
+        data: { status: 'AUCTION_ENDED' },
       })
 
       // Mark event as processed
@@ -193,7 +317,7 @@ export class EventListener {
         },
       })
 
-      console.log(`✅ Auction ${auctionId} processed - mint queued for NFT #${auction.nft.tokenId}`)
+      console.log(`✅ Auction ${auctionId} processed - mint queued for NFT #${nft.tokenId}`)
     } catch (error) {
       console.error('❌ Error handling AuctionWon event:', error)
     }

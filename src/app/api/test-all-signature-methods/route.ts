@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { privateKeyToAccount } from 'viem/accounts'
 import { encodePacked, keccak256, type Address, type Hex } from 'viem'
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useWriteContract, useWaitForTransactionReceipt, useEstimateGas } from 'wagmi'
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
 import { useState, useEffect } from 'react'
 import { baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../contracts/abis/KukuxumusuPayment_ABI.json'
@@ -34,6 +34,7 @@ const ERC20_ABI = [
 ] as const
 
 export function usePlaceBid() {
+  const { address } = useAccount()
   const [isApproving, setIsApproving] = useState(false)
   const [isBidding, setIsBidding] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,6 +63,9 @@ export function usePlaceBid() {
     error: bidError
   } = useWriteContract()
 
+  // Estado para almacenar hashes de transacción de bids
+  const [bidTransactionHashes, setBidTransactionHashes] = useState<Record<string, string>>({})
+
   // Esperar confirmación de aprobación
   const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } =
     useWaitForTransactionReceipt({
@@ -86,19 +90,39 @@ export function usePlaceBid() {
     }
   }, [approveError, bidError])
 
+  // Resetear estado cuando la transacción se confirma
+  useEffect(() => {
+    if (isBidSuccess && bidHash && pendingBidParams) {
+      setIsBidding(false)
+      
+      // Almacenar el hash de transacción con los datos del bid
+      // Formato: bidder-token-amount (para coincidir con BidderList)
+      const key = `${address}-${pendingBidParams.tokenAddress}-${pendingBidParams.amount}`
+      setBidTransactionHashes(prev => ({
+        ...prev,
+        [key]: bidHash
+      }))
+      
+      console.log('✅ Bid transaction confirmed successfully!')
+      console.log('📝 Stored transaction hash:', bidHash, 'for bid:', key)
+      
+      setPendingBidParams(null)
+    }
+  }, [isBidSuccess, bidHash, pendingBidParams])
+
 
   /**
    * Estimar gas para transacciones
    */
   const estimateGasForBid = async (
-    auctionId: number | bigint,
-    tokenAddress: string,
-    amount: bigint,
-    valueInUSD: bigint,
-    signature: `0x${string}`
+    _auctionId: number | bigint,
+    _tokenAddress: string,
+    _amount: bigint,
+    _valueInUSD: bigint,
+    _signature: `0x${string}`
   ) => {
     try {
-      const isNativeETH = tokenAddress === NATIVE_ETH_ADDRESS
+      const isNativeETH = _tokenAddress === NATIVE_ETH_ADDRESS
       // Aquí podrías implementar la estimación real usando useEstimateGas
       // Por ahora usamos valores conservadores
       const estimatedGas = isNativeETH ? 200000n : 250000n // ETH nativo usa menos gas
@@ -137,8 +161,8 @@ export function usePlaceBid() {
         args: [PAYMENT_CONTRACT_ADDRESS, approveAmount],
         chainId: baseSepolia.id,
         // Configuración de gas optimizada
-        gas: 100000n, // Aprobar es una operación simple
         ...baseGasConfig,
+        gas: 100000n, // Aprobar es una operación simple
       })
 
       return true
@@ -180,8 +204,8 @@ export function usePlaceBid() {
         value: isNativeETH ? amount : 0n, // Enviar ETH si es nativo
         chainId: baseSepolia.id,
         // Configuración de gas optimizada
-        gas: gasEstimate ? gasEstimate + (gasEstimate * 20n / 100n) : 400000n, // +20% buffer o 400k por defecto
         ...baseGasConfig,
+        gas: gasEstimate ? gasEstimate + (gasEstimate * 20n / 100n) : 400000n, // +20% buffer o 400k por defecto
       })
 
       return true
@@ -276,6 +300,7 @@ export function usePlaceBid() {
     gasEstimate,
     approveHash,
     bidHash,
+    bidTransactionHashes, // Exportar los hashes almacenados
     reset: () => {
       setIsApproving(false)
       setIsBidding(false)

@@ -9,7 +9,7 @@ import { signBidData } from '@/lib/services/signature-service'
 import { generateAlternativeMessageHashes } from '@/lib/services/signature-service'
 import { type Address } from 'viem'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     console.log('🧪 [TEST-SIGNATURE-METHODS] GET request - Testing signature methods...')
 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     console.log('🧪 [TEST-SIGNATURE-METHODS] Testing different signature methods...')
 

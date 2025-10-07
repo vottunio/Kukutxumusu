@@ -790,7 +790,7 @@ LOG_LEVEL=info
 # Blockchain - Base (Payments)
 BASE_RPC_URL=https://mainnet.base.org
 BASE_WS_URL=wss://mainnet.base.org
-PAYMENT_CONTRACT_ADDRESS=0x535683a04a9bFE0F9EF102336706A981d12fF125
+PAYMENT_CONTRACT_ADDRESS=0xa04cEda1fc7eeB2559d2C3936cA678D91b4530E3
 
 # Blockchain - Story Protocol (NFTs)
 STORY_RPC_URL=https://rpc.story.foundation

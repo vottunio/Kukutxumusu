@@ -15,6 +15,8 @@ if (!TRUSTED_SIGNER_PRIVATE_KEY) {
 
 const trustedSigner = privateKeyToAccount(TRUSTED_SIGNER_PRIVATE_KEY)
 
+console.log('🔐 Trusted Signer initialized:', trustedSigner.address)
+
 export interface BidSignatureData {
   auctionId: number
   bidder: Address
@@ -32,9 +34,6 @@ export interface SignedBidData extends BidSignatureData {
 /**
  * Generate message hash for bid data
  * This hash is what gets signed and verified on-chain
- * 
- * IMPORTANT: The contract might expect a specific format
- * We're trying the original encodePacked method since EIP-712 failed
  */
 function generateMessageHash(data: BidSignatureData): Hex {
   // EXACT MATCH with contract: keccak256(abi.encodePacked(auctionId, msg.sender, paymentToken, amount, valueInUSD))
@@ -54,57 +53,10 @@ function generateMessageHash(data: BidSignatureData): Hex {
 }
 
 /**
- * Alternative: Direct packed encoding (original method)
- */
-// function generatePackedMessageHash(data: BidSignatureData): Hex {
-//   // Same order as the main function
-//   const encoded = encodePacked(
-//     ['address', 'uint256', 'uint256', 'address', 'uint256', 'uint256'],
-//     [
-//       data.tokenAddress,
-//       data.amount,
-//       data.valueInUSD,
-//       data.bidder,
-//       BigInt(data.auctionId),
-//       BigInt(data.timestamp),
-//     ]
-//   )
-//
-//   return keccak256(encoded)
-// }
-
-/**
- * Alternative message hash generation methods for testing
- * The contract might use a different encoding method
- */
-export function generateAlternativeMessageHashes(data: BidSignatureData): {
-  packed: Hex
-  // Add more alternatives as needed
-} {
-  // Method 1: Correct order as per contract documentation
-  const packed = encodePacked(
-    ['address', 'uint256', 'uint256', 'address', 'uint256', 'uint256'],
-    [
-      data.tokenAddress,
-      data.amount,
-      data.valueInUSD,
-      data.bidder,
-      BigInt(data.auctionId),
-      BigInt(data.timestamp),
-    ]
-  )
-  
-  return {
-    packed: keccak256(packed),
-  }
-}
-
-/**
  * Sign bid data with trusted signer private key
  */
 export async function signBidData(data: BidSignatureData): Promise<SignedBidData> {
   console.log('🔐 [SIGNATURE] Starting signature process...')
-  console.log('🔐 [SIGNATURE] Trusted signer address:', trustedSigner.address)
   console.log('🔐 [SIGNATURE] Input data:', {
     auctionId: data.auctionId,
     bidder: data.bidder,
@@ -143,27 +95,4 @@ export async function signBidData(data: BidSignatureData): Promise<SignedBidData
  */
 export function getTrustedSignerAddress(): Address {
   return trustedSigner.address
-}
-
-/**
- * Verify a signature (for testing purposes)
- */
-export async function verifySignature(
-  data: BidSignatureData,
-  signature: Hex
-): Promise<boolean> {
-  try {
-    const messageHash = generateMessageHash(data)
-
-    // In production, the smart contract will do this verification on-chain
-    // This is just for testing purposes
-    const recoveredAddress = await trustedSigner.signMessage({
-      message: { raw: messageHash },
-    })
-
-    return recoveredAddress === signature
-  } catch (error) {
-    console.error('Signature verification error:', error)
-    return false
-  }
 }

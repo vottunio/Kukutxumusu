@@ -12,6 +12,11 @@ export function WalletButton() {
 
   if (!mounted) return null
 
-  return <ConnectButton />
+  return (
+    <ConnectButton
+      chainStatus="full"
+      showBalance={false}
+    />
+  )
 }
 

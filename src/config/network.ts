@@ -26,4 +26,5 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   console.log('🌐 Network Mode:', NETWORK_MODE)
   console.log('💰 Payment Chain:', PAYMENT_CHAIN.name, `(ID: ${PAYMENT_CHAIN.id})`)
   console.log('🎨 NFT Chain:', NFT_CHAIN.name, `(ID: ${NFT_CHAIN.id})`)
+  console.log('🔧 NFT_CHAIN ID:', NFT_CHAIN.id)
 }

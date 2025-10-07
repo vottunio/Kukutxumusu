@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useActiveAuctions, useAuction } from '@/hooks/useAuction'
+import { usePlaceBid } from '@/hooks/usePlaceBid'
 import { AuctionCard } from '@/components/auction/AuctionCard'
 import { BidForm } from '@/components/auction/BidForm'
 import { BidderList } from '@/components/auction/BidderList'
@@ -11,9 +12,54 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const { activeAuctionIds, totalActive } = useActiveAuctions()
+  const { activeAuctionIds } = useActiveAuctions()
+  const [filteredActiveAuctions, setFilteredActiveAuctions] = useState<number[]>([])
+  const [actualActiveCount, setActualActiveCount] = useState(0)
 
-  const currentAuctionId = activeAuctionIds[currentIndex] ?? null
+  // Filtrar subastas activas en el frontend
+  useEffect(() => {
+    const filterActiveAuctions = async () => {
+      if (activeAuctionIds.length === 0) {
+        setFilteredActiveAuctions([])
+        setActualActiveCount(0)
+        return
+      }
+
+      const currentTime = BigInt(Math.floor(Date.now() / 1000))
+      const activeAuctions: number[] = []
+
+      // Verificar cada subasta individualmente
+      for (const auctionId of activeAuctionIds) {
+        try {
+          const response = await fetch(`/api/auctions/${auctionId}`)
+          if (response.ok) {
+            const auctionData = await response.json()
+            if (auctionData.success && auctionData.auction) {
+              const { startTime, endTime, finalized } = auctionData.auction
+              
+              // Verificar si está activa: no finalizada, dentro del rango de tiempo
+              const isActive = !finalized && 
+                currentTime >= BigInt(startTime) && 
+                currentTime < BigInt(endTime)
+              
+              if (isActive) {
+                activeAuctions.push(auctionId)
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error checking auction ${auctionId}:`, error)
+        }
+      }
+
+      setFilteredActiveAuctions(activeAuctions)
+      setActualActiveCount(activeAuctions.length)
+    }
+
+    filterActiveAuctions()
+  }, [activeAuctionIds])
+
+  const currentAuctionId = filteredActiveAuctions[currentIndex] ?? null
   const {
     auction,
     bids,
@@ -22,13 +68,16 @@ export default function Home() {
     refetch,
   } = useAuction(currentAuctionId ?? 0)
 
+  // Obtener hashes de transacción de bids
+  const { bidTransactionHashes } = usePlaceBid()
+
   // Navegar al siguiente/anterior
   const goNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % totalActive)
+    setCurrentIndex((prev) => (prev + 1) % actualActiveCount)
   }
 
   const goPrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + totalActive) % totalActive)
+    setCurrentIndex((prev) => (prev - 1 + actualActiveCount) % actualActiveCount)
   }
 
   useEffect(() => {
@@ -68,10 +117,10 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-gray-900">
               Active Auctions
             </h2>
-            {totalActive > 0 && (
+            {actualActiveCount > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
-                  {currentIndex + 1} of {totalActive}
+                  {currentIndex + 1} of {actualActiveCount}
                 </span>
               </div>
             )}
@@ -81,7 +130,7 @@ export default function Home() {
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">Loading auctions...</p>
             </div>
-          ) : totalActive === 0 ? (
+          ) : actualActiveCount === 0 ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">No active auctions at the moment</p>
               <p className="text-sm text-gray-400 mt-2">Check back soon!</p>
@@ -89,7 +138,7 @@ export default function Home() {
           ) : (
             <div className="relative">
               {/* Navigation Arrows */}
-              {totalActive > 1 && (
+              {actualActiveCount > 1 && (
                 <>
                   <button
                     onClick={goPrev}
@@ -127,14 +176,15 @@ export default function Home() {
                   <BidderList
                     bids={bids}
                     currentHighestBidder={auction!.highestBidder}
+                    bidTransactionHashes={bidTransactionHashes}
                   />
                 </div>
               </div>
 
               {/* Auction Indicators */}
-              {totalActive > 1 && (
+              {actualActiveCount > 1 && (
                 <div className="flex justify-center gap-2 mt-6">
-                  {activeAuctionIds.map((_, index) => (
+                  {filteredActiveAuctions.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentIndex(index)}

@@ -31,8 +31,8 @@ export default function ExplorePage() {
     try {
       const res = await fetch('/api/nfts')
       const data = await res.json()
-      if (data.success) {
-        setNfts(data.data)
+      if (data.success && data.data?.nfts) {
+        setNfts(data.data.nfts)
       }
     } catch (error) {
       console.error('Error fetching NFTs:', error)
@@ -42,8 +42,8 @@ export default function ExplorePage() {
   }
 
   // Extract all unique attributes
-  const allAttributes = nfts.reduce((acc, nft) => {
-    if (nft.metadata.attributes) {
+  const allAttributes = (nfts || []).reduce((acc, nft) => {
+    if (nft?.metadata?.attributes) {
       nft.metadata.attributes.forEach(attr => {
         if (!acc.includes(attr.trait_type)) {
           acc.push(attr.trait_type)
@@ -54,13 +54,15 @@ export default function ExplorePage() {
   }, [] as string[])
 
   // Filter NFTs
-  const filteredNFTs = nfts.filter(nft => {
-    const matchesSearch = nft.metadata.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          nft.tokenId.includes(searchTerm) ||
-                          nft.owner.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredNFTs = (nfts || []).filter(nft => {
+    if (!nft) return false
+
+    const matchesSearch = nft.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          nft.tokenId?.includes(searchTerm) ||
+                          nft.owner?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesAttribute = !selectedAttribute ||
-                            nft.metadata.attributes?.some(attr => attr.trait_type === selectedAttribute)
+                            nft.metadata?.attributes?.some(attr => attr.trait_type === selectedAttribute)
 
     return matchesSearch && matchesAttribute
   })

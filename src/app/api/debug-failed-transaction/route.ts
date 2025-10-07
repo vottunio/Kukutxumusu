@@ -13,7 +13,7 @@ import PaymentABI from '../../../../contracts/abis/KukuxumusuPayment_ABI.json'
 
 const PAYMENT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS as `0x${string}`
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     console.log('🔍 [DEBUG-FAILED-TX] Debugging failed transaction...')
 

@@ -15,12 +15,24 @@ const baseGasConfig = {
 export const config = getDefaultConfig({
   appName: 'Kukuxumusu NFT',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '',
-  chains: WAGMI_CHAINS, // Determinado por NEXT_PUBLIC_NETWORK_MODE
+  chains: WAGMI_CHAINS as any, // Determinado por NEXT_PUBLIC_NETWORK_MODE
   transports: {
-    [baseMainnet.id]: http(),
-    [baseSepolia.id]: http(),
-    [storyMainnet.id]: http(),
-    [storyTestnet.id]: http(),
+    [baseMainnet.id]: http('https://mainnet.base.org', {
+      retryCount: 3,
+      timeout: 30_000,
+    }),
+    [baseSepolia.id]: http('https://sepolia.base.org', {
+      retryCount: 3,
+      timeout: 30_000,
+    }),
+    [storyMainnet.id]: http('https://mainnet.storyrpc.io', {
+      retryCount: 3,
+      timeout: 30_000,
+    }),
+    [storyTestnet.id]: http('https://aeneid.storyrpc.io', {
+      retryCount: 3,
+      timeout: 30_000,
+    }),
   },
   // Configuración de gas optimizada
   batch: {

@@ -15,7 +15,9 @@
       "Bash(if [ -f \"c:\\Users\\smias\\Documents\\DEVELOPEMENT\\kukutxumusu\\src\\config\\wallets.ts\" ])",
       "Bash(then rm \"c:\\Users\\smias\\Documents\\DEVELOPEMENT\\kukutxumusu\\src\\config\\wallets.ts\")",
       "Bash(else echo \"Archivo no existe\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(curl -s -X POST https://testnet.storyrpc.io -H \"Content-Type: application/json\" -d '{\"\"jsonrpc\"\":\"\"2.0\"\",\"\"method\"\":\"\"eth_chainId\"\",\"\"params\"\":[],\"\"id\"\":1}' --max-time 5)",
+      "Bash(curl -s -X POST https://rpc.odyssey.storyrpc.io -H \"Content-Type: application/json\" -d '{\"\"jsonrpc\"\":\"\"2.0\"\",\"\"method\"\":\"\"eth_chainId\"\",\"\"params\"\":[],\"\"id\"\":1}' --max-time 10)"
     ],
     "deny": [],
     "ask": []

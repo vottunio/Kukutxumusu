@@ -58,6 +58,7 @@ export function CreateNFTAuctionForm() {
   const [createdNftId, setCreatedNftId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [auctionData, setAuctionData] = useState<any>(null)
 
   const { writeContract, data: hash, isPending, error: txError } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
@@ -67,7 +68,25 @@ export function CreateNFTAuctionForm() {
     if (isSuccess && hash && createdNftId) {
       const updateNFTStatus = async () => {
         try {
-          // Update NFT to AUCTIONING status
+          // Step 1: Create auction record in database
+          const auctionResponse = await fetch('/api/admin/create-auction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nftId: createdNftId,
+              txHash: hash,
+              auctionData: auctionData, // Pass frontend data
+            }),
+          })
+
+          if (!auctionResponse.ok) {
+            const error = await auctionResponse.json()
+            throw new Error(error.error || 'Failed to create auction in database')
+          }
+
+          console.log('✅ Auction created in database')
+
+          // Step 2: Update NFT to AUCTIONING status
           await fetch('/api/admin/update-nft-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -77,6 +96,8 @@ export function CreateNFTAuctionForm() {
               txHash: hash,
             }),
           })
+
+          console.log('✅ NFT status updated to AUCTIONING')
 
           setSuccessMessage(`Auction created successfully! Transaction: ${hash}`)
           setCurrentStep('form')
@@ -88,6 +109,7 @@ export function CreateNFTAuctionForm() {
           }, 5000)
         } catch (err) {
           console.error('Error updating NFT status:', err)
+          setError(err instanceof Error ? err.message : 'Error updating NFT status')
         }
       }
 
@@ -324,6 +346,17 @@ export function CreateNFTAuctionForm() {
       // Si anti-sniping está desactivado, poner 0
       const extensionInSeconds = enableAntiSniping ? BigInt(Number(antiSnipingExtension) * 60) : BigInt(0)
       const triggerInSeconds = enableAntiSniping ? BigInt(Number(antiSnipingTrigger) * 60) : BigInt(0)
+
+      // Store auction data for later use
+      setAuctionData({
+        selectedTokens,
+        minPrices: minPricesArray,
+        discounts: discountsArray,
+        extensionInSeconds,
+        triggerInSeconds,
+        durationInSeconds,
+        startTimeTimestamp,
+      })
 
       writeContract({
         address: PAYMENT_CONTRACT_ADDRESS,

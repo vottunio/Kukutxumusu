@@ -78,8 +78,8 @@ export const storyMainnet = defineChain({
 })
 
 export const storyTestnet = defineChain({
-  id: 1513,
-  name: 'Story Testnet',
+  id: 1315,
+  name: 'Story Aeneid Testnet',
   nativeCurrency: {
     name: 'IP',
     symbol: 'IP',
@@ -87,16 +87,16 @@ export const storyTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ['https://testnet.storyrpc.io'],
+      http: ['https://aeneid.storyrpc.io'],
     },
     public: {
-      http: ['https://testnet.storyrpc.io'],
+      http: ['https://aeneid.storyrpc.io'],
     },
   },
   blockExplorers: {
     default: {
-      name: 'StoryScan Testnet',
-      url: 'https://testnet.storyscan.xyz',
+      name: 'StoryScan Aeneid',
+      url: 'https://aeneid.storyscan.xyz',
     },
   },
   testnet: true,

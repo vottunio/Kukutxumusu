@@ -114,6 +114,7 @@ contract KukuxumusuPayment is AccessControl, ReentrancyGuard, Pausable {
         address indexed bidder,
         address token,
         uint256 amount,
+        uint256 valueInUSD,
         uint256 timestamp
     );
 
@@ -123,7 +124,8 @@ contract KukuxumusuPayment is AccessControl, ReentrancyGuard, Pausable {
         address indexed nftContract,
         uint256 nftId,
         address token,
-        uint256 finalAmount
+        uint256 finalAmount,
+        uint256 valueInUSD
     );
 
     event AuctionFinalized(uint256 indexed auctionId, bool hasWinner);
@@ -395,7 +397,7 @@ contract KukuxumusuPayment is AccessControl, ReentrancyGuard, Pausable {
             }
         }
 
-        emit BidPlaced(auctionId, msg.sender, paymentToken, amount, block.timestamp);
+        emit BidPlaced(auctionId, msg.sender, paymentToken, amount, valueInUSD, block.timestamp);
     }
 
     /**
@@ -440,7 +442,8 @@ contract KukuxumusuPayment is AccessControl, ReentrancyGuard, Pausable {
                 auction.nftContract,
                 auction.nftId,
                 auction.highestBidToken,
-                finalAmount
+                finalAmount,
+                auction.highestBidValueUSD
             );
         }
 

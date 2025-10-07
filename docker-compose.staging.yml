@@ -82,9 +82,11 @@ services:
     image: nginx:alpine
     container_name: kukuxumusu-nginx-staging
     ports:
-      - "80:80"  # Puerto estándar HTTP
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
     depends_on:
       - frontend
       # - relayer  # Deshabilitado - se ejecuta por separado

@@ -6,14 +6,22 @@
 import { privateKeyToAccount } from 'viem/accounts'
 import { encodePacked, keccak256, type Address, type Hex } from 'viem'
 
-// Get trusted signer from environment
-const TRUSTED_SIGNER_PRIVATE_KEY = process.env.TRUSTED_SIGNER_PRIVATE_KEY as Hex
+// Get trusted signer from environment (lazy initialization)
+let trustedSigner: ReturnType<typeof privateKeyToAccount> | null = null
 
-if (!TRUSTED_SIGNER_PRIVATE_KEY) {
-  throw new Error('TRUSTED_SIGNER_PRIVATE_KEY not set in environment')
+function getTrustedSigner() {
+  if (!trustedSigner) {
+    const TRUSTED_SIGNER_PRIVATE_KEY = process.env.TRUSTED_SIGNER_PRIVATE_KEY as Hex
+
+    if (!TRUSTED_SIGNER_PRIVATE_KEY) {
+      throw new Error('TRUSTED_SIGNER_PRIVATE_KEY not set in environment')
+    }
+
+    trustedSigner = privateKeyToAccount(TRUSTED_SIGNER_PRIVATE_KEY)
+  }
+
+  return trustedSigner
 }
-
-const trustedSigner = privateKeyToAccount(TRUSTED_SIGNER_PRIVATE_KEY)
 
 export interface BidSignatureData {
   auctionId: number
@@ -103,8 +111,9 @@ export function generateAlternativeMessageHashes(data: BidSignatureData): {
  * Sign bid data with trusted signer private key
  */
 export async function signBidData(data: BidSignatureData): Promise<SignedBidData> {
+  const signer = getTrustedSigner()
   console.log('🔐 [SIGNATURE] Starting signature process...')
-  console.log('🔐 [SIGNATURE] Trusted signer address:', trustedSigner.address)
+  console.log('🔐 [SIGNATURE] Trusted signer address:', signer.address)
   console.log('🔐 [SIGNATURE] Input data:', {
     auctionId: data.auctionId,
     bidder: data.bidder,
@@ -120,7 +129,7 @@ export async function signBidData(data: BidSignatureData): Promise<SignedBidData
 
   try {
     // Sign with Ethereum Signed Message prefix (like contract uses toEthSignedMessageHash())
-    const signature = await trustedSigner.signMessage({
+    const signature = await signer.signMessage({
       message: { raw: messageHash },
     })
     
@@ -142,7 +151,7 @@ export async function signBidData(data: BidSignatureData): Promise<SignedBidData
  * Get the trusted signer address (for frontend/contract configuration)
  */
 export function getTrustedSignerAddress(): Address {
-  return trustedSigner.address
+  return getTrustedSigner().address
 }
 
 /**
@@ -153,11 +162,12 @@ export async function verifySignature(
   signature: Hex
 ): Promise<boolean> {
   try {
+    const signer = getTrustedSigner()
     const messageHash = generateMessageHash(data)
 
     // In production, the smart contract will do this verification on-chain
     // This is just for testing purposes
-    const recoveredAddress = await trustedSigner.signMessage({
+    const recoveredAddress = await signer.signMessage({
       message: { raw: messageHash },
     })
 

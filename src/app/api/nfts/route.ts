@@ -86,7 +86,7 @@ export async function GET(request: Request) {
           owner: ownerAddress,
           tokenURI,
           metadata: metadata || {
-            name: `Kukuxumusu #${tokenId}`,
+            name: `Adarbakar #${tokenId}`,
             description: 'Metadata not available',
             image: tokenURI ? tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/') : null,
           },

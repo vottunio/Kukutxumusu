@@ -175,7 +175,7 @@ export default function DashboardPage() {
             <div className="prose text-gray-600">
               <p className="mb-4">
                 This public dashboard displays real-time statistics and treasury information
-                for the Kukuxumusu NFT marketplace. All data is sourced directly from the blockchain:
+                for the Adarbakar NFT marketplace. All data is sourced directly from the blockchain:
               </p>
               <ul className="list-disc list-inside space-y-2">
                 <li><strong>Auction & Bid Data:</strong> Payment contract on Base Sepolia</li>
@@ -183,7 +183,7 @@ export default function DashboardPage() {
                 <li><strong>Treasury Balances:</strong> Multi-token balances (VTN, ETH, USDT) on Base</li>
               </ul>
               <p className="mt-4">
-                All smart contracts are verified and transparent. Only authorized Kukuxumusu
+                All smart contracts are verified and transparent. Only authorized KukuAdarbakarxumusu
                 wallets can withdraw funds from the treasury.
               </p>
             </div>

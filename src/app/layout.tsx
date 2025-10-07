@@ -8,7 +8,7 @@ import { Header } from '@/components/Header'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Kukuxumusu NFT',
+  title: 'Adarbakar',
   description: 'Cross-chain NFT marketplace on Story Protocol and Base',
 }
 

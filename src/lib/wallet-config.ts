@@ -13,7 +13,7 @@ const baseGasConfig = {
 
 // Configuración de RainbowKit con optimizaciones de gas
 export const config = getDefaultConfig({
-  appName: 'Kukuxumusu NFT',
+  appName: 'Adarbakar NFT',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '',
   chains: WAGMI_CHAINS as any, // Determinado por NEXT_PUBLIC_NETWORK_MODE
   transports: {

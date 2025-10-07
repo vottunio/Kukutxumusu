@@ -7,14 +7,16 @@ import { usePlaceBid } from '@/hooks/usePlaceBid'
 import { AuctionCard } from '@/components/auction/AuctionCard'
 import { BidForm } from '@/components/auction/BidForm'
 import { BidderList } from '@/components/auction/BidderList'
+import { LandingSections } from '@/components/LandingSections'
+import { Footer } from '@/components/Footer'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const { activeAuctionIds } = useActiveAuctions()
   const [filteredActiveAuctions, setFilteredActiveAuctions] = useState<number[]>([])
   const [actualActiveCount, setActualActiveCount] = useState(0)
+  const [isClient, setIsClient] = useState(false)
 
   // Filtrar subastas activas en el frontend
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function Home() {
   }
 
   useEffect(() => {
-    setMounted(true)
+    setIsClient(true)
   }, [])
 
   return (
@@ -90,7 +92,7 @@ export default function Home() {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-gray-900 mb-6">
-            Kukuxumusu NFT
+          Adarbakar NFT
           </h1>
           <p className="text-2xl text-gray-600 mb-8">
             Cross-chain NFT marketplace powered by Base & Story Protocol
@@ -126,7 +128,7 @@ export default function Home() {
             )}
           </div>
 
-          {!mounted || isLoading ? (
+          {!isClient || isLoading ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">Loading auctions...</p>
             </div>
@@ -203,7 +205,7 @@ export default function Home() {
         </div>
 
         {/* Recently Minted NFTs */}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto mt-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
             Recently Minted
           </h2>
@@ -213,6 +215,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Landing Sections - About Us & FAQ */}
+      <LandingSections />
+
+      {/* Footer */}
+      <Footer />
     </main>
   )
 }

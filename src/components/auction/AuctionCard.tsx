@@ -66,7 +66,7 @@ export function AuctionCard({ auction, auctionId }: AuctionCardProps) {
             <div className="flex items-center justify-center h-full text-center text-white">
               <div>
                 <p className="text-6xl font-bold mb-2">#{auction.nftId.toString()}</p>
-                <p className="text-xl opacity-80">Kukuxumusu NFT</p>
+                <p className="text-xl opacity-80">Adarbakar NFT</p>
               </div>
             </div>
           )}
@@ -78,7 +78,7 @@ export function AuctionCard({ auction, auctionId }: AuctionCardProps) {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold text-gray-900">
-                {nftData?.name || `Kukuxumusu #${auction.nftId.toString()}`}
+                {nftData?.name || `Adarbakar #${auction.nftId.toString()}`}
               </h3>
               <p className="text-sm text-gray-500">Auction #{auctionId}</p>
             </div>

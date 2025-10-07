@@ -1,6 +1,6 @@
 'use client'
 
-import { useReadContract } from 'wagmi'
+import { useReadContract, useBalance } from 'wagmi'
 import { useWallet } from './useWallet'
 import { baseSepolia, storyTestnet } from '@/lib/chains'
 
@@ -26,21 +26,23 @@ export function usePaymentContract() {
     },
   })
 
-  // Leer balance del treasury (desde el contrato nativo ETH)
-  const { data: treasuryBalance, refetch: refetchBalance } = useReadContract({
+  // Leer balance del treasury usando useBalance de wagmi
+  const { data: treasuryBalanceData, refetch: refetchBalance } = useBalance({
     address: treasuryAddress as `0x${string}` | undefined,
-    abi: [{
-      type: 'function',
-      name: 'getBalance',
-      stateMutability: 'view',
-      inputs: [],
-      outputs: [{ type: 'uint256' }]
-    }],
-    functionName: 'getBalance',
     chainId: baseSepolia.id,
     query: {
       enabled: isConnected && !!treasuryAddress,
     },
+  })
+
+  const treasuryBalance = treasuryBalanceData?.value
+
+  // Debug logs
+  console.log('🔍 [usePaymentContract] Debug:', {
+    isConnected,
+    treasuryAddress,
+    treasuryBalanceData,
+    treasuryBalance,
   })
 
   // Leer contador de subastas

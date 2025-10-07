@@ -92,6 +92,7 @@ docker build -t kukuxumusu-frontend:staging \
   --build-arg NEXT_PUBLIC_NETWORK_MODE="$NEXT_PUBLIC_NETWORK_MODE" \
   --build-arg NEXT_PUBLIC_BASE_RPC_URL="$NEXT_PUBLIC_BASE_RPC_URL" \
   --build-arg NEXT_PUBLIC_STORY_RPC_URL="$NEXT_PUBLIC_STORY_RPC_URL" \
+  --build-arg TRUSTED_SIGNER_PRIVATE_KEY="$TRUSTED_SIGNER_PRIVATE_KEY" \
   -f Dockerfile .
 
 log "📦 Construyendo worker..."

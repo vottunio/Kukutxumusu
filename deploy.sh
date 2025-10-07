@@ -75,9 +75,9 @@ success "Código actualizado"
 log "🔨 Construyendo imágenes..."
 log "📝 Mostrando logs en tiempo real..."
 if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build 2>&1 | tee build.log
+    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build
 else
-    docker-compose -f "$COMPOSE_FILE" build 2>&1 | tee build.log
+    docker-compose -f "$COMPOSE_FILE" build
 fi
 
 # Deploy (luego levantar servicios)

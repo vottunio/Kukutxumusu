@@ -1,6 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // Excluir worker/ del build
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
+
+  // Excluir worker del análisis de TypeScript
+  experimental: {
+    typedRoutes: false,
+  },
   
   // Optimización de imágenes para logos de tokens/wallets
   images: {

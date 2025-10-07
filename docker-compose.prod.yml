@@ -65,31 +65,38 @@ services:
       - kukuxumusu-prod-network
     restart: unless-stopped
 
-  # Backend Go Relayer (producción) - DESHABILITADO - Se ejecutará en contenedor separado
-  # relayer:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: kukuxumusu-relayer-prod
-  #   environment:
-  #     - DATABASE_URL=postgres://kukuxumusu:${POSTGRES_PASSWORD}@postgres:5432/kukuxumusu_relayer?sslmode=disable
-  #     - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-  #     - BASE_RPC_URL=${BASE_RPC_URL}
-  #     - STORY_RPC_URL=${STORY_RPC_URL}
-  #     - PAYMENT_CONTRACT_ADDRESS=${PAYMENT_CONTRACT_ADDRESS}
-  #     - NFT_CONTRACT_ADDRESS=${NFT_CONTRACT_ADDRESS}
-  #     - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
-  #     - PINATA_API_KEY=${PINATA_API_KEY}
-  #     - PINATA_SECRET=${PINATA_SECRET}
-  #     - ENVIRONMENT=production
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_started
-  #   networks:
-  #     - kukuxumusu-prod-network
-  #   restart: unless-stopped
+  # Worker Node.js (Event Listener + Mint Executor)
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: kukuxumusu-worker-prod
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://kukuxumusu:${POSTGRES_PASSWORD}@postgres:5432/kukuxumusu?sslmode=disable
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      # Blockchain - Base Mainnet
+      - BASE_RPC_URL=${BASE_RPC_URL}
+      - PAYMENT_CONTRACT_ADDRESS=${PAYMENT_CONTRACT_ADDRESS}
+      # Blockchain - Story Protocol
+      - STORY_RPC_URL=${STORY_RPC_URL}
+      - NFT_CONTRACT_ADDRESS=${NFT_CONTRACT_ADDRESS}
+      # Trusted Signer (CRITICAL)
+      - TRUSTED_SIGNER_PRIVATE_KEY=${TRUSTED_SIGNER_PRIVATE_KEY}
+      # Relayer Private Key (for minting)
+      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
+      # IPFS/Pinata
+      - PINATA_API_KEY=${PINATA_API_KEY}
+      - PINATA_SECRET=${PINATA_SECRET}
+      - PINATA_JWT=${PINATA_JWT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kukuxumusu-prod-network
+    restart: unless-stopped
 
   # Nginx reverse proxy (producción)
   nginx:

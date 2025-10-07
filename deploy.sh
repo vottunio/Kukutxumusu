@@ -75,17 +75,18 @@ success "Código actualizado"
 log "🔨 Construyendo imágenes..."
 log "📝 Mostrando logs en tiempo real..."
 if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" build --progress=plain
+    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" --progress=plain build
 else
-    docker-compose -f "$COMPOSE_FILE" build --progress=plain
+    docker-compose -f "$COMPOSE_FILE" --progress=plain build
 fi
 
 # Deploy (luego levantar servicios)
 log "🚀 Desplegando servicios..."
+log "📦 Creando contenedores..."
 if [ -f ".env.$ENVIRONMENT" ]; then
-    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" up -d --remove-orphans
+    docker-compose -f "$COMPOSE_FILE" --env-file ".env.$ENVIRONMENT" up -d --remove-orphans --progress=plain
 else
-    docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans
+    docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --progress=plain
 fi
 
 # Verificar que los servicios estén corriendo

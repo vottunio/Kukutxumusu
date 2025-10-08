@@ -38,6 +38,7 @@ services:
       - NODE_ENV=staging
       - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_staging@postgres:5432/kukuxumusu?sslmode=disable
       - REDIS_URL=redis://redis:6379
+      - WORKER_URL=http://worker:8080
       # Solo variables públicas para Next.js
       - NEXT_PUBLIC_BASE_RPC_URL=${NEXT_PUBLIC_BASE_RPC_URL}
       - NEXT_PUBLIC_STORY_RPC_URL=${NEXT_PUBLIC_STORY_RPC_URL}

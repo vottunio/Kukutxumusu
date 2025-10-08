@@ -37,14 +37,6 @@ export function usePaymentContract() {
 
   const treasuryBalance = treasuryBalanceData?.value
 
-  // Debug logs
-  console.log('🔍 [usePaymentContract] Debug:', {
-    isConnected,
-    treasuryAddress,
-    treasuryBalanceData,
-    treasuryBalance,
-  })
-
   // Leer contador de subastas
   const { data: auctionCounter } = useReadContract({
     address: PAYMENT_CONTRACT_ADDRESS,

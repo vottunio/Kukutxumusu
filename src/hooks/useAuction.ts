@@ -72,7 +72,6 @@ export function useAuction(auctionId: number | bigint) {
     if (!auctionId) return
     
     try {
-      console.log('📊 [useAuction] Fetching bid hashes from database for auction:', auctionId)
       const response = await fetch(`/api/auctions/${auctionId}/bids`)
       const data = await response.json()
       
@@ -84,7 +83,6 @@ export function useAuction(auctionId: number | bigint) {
           hashMap[key] = bid.transactionHash
         })
         setBidHashes(hashMap)
-        console.log('📊 [useAuction] Retrieved bid hashes from DB:', hashMap)
       }
     } catch (error) {
       console.error('Error fetching bid hashes from DB:', error)
@@ -98,10 +96,7 @@ export function useAuction(auctionId: number | bigint) {
     }
   }, [auctionId])
 
-  // Debug: Ver data cruda del contrato
-  if (typeof window !== 'undefined' && bidsData !== undefined) {
-    console.log('📦 [useAuction] Raw bidsData from contract:', bidsData)
-  }
+
 
   // Parsear datos de la subasta
   const auction: Auction | null = auctionData ? {
@@ -130,11 +125,6 @@ export function useAuction(auctionId: number | bigint) {
       transactionHash: bidHashes[key], // Hash desde la BD
     }
   }) : []
-
-  // Debug log
-  if (typeof window !== 'undefined' && bids.length > 0) {
-    console.log(`👀 [useAuction] Bids for auction ${auctionId}:`, bids.length, bids)
-  }
 
   // Calcular si la subasta está activa
   const isActive = auction && !auction.finalized &&

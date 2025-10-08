@@ -71,14 +71,14 @@ export function BidderList({ bids, currentHighestBidder, bidTransactionHashes = 
           })}
         </div>
 
-        {/* View All Bids Button */}
-        {bids.length > INITIAL_DISPLAY_COUNT && (
+        {/* View All Bids Button - Siempre visible para mostrar más info */}
+        {bids.length > 0 && (
           <div className="mt-3 md:mt-4 text-center">
             <button
               onClick={() => setShowAllBids(true)}
               className="text-xs md:text-sm text-gray-600 hover:text-gray-900 underline"
             >
-              View all bids
+              View all bids ({bids.length})
             </button>
           </div>
         )}

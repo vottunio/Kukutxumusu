@@ -35,12 +35,6 @@ export function Header() {
     }
   }, [isMobileMenuOpen])
 
-  // Debug logs
-  console.log('🔍 [Header] Debug:', {
-    isConnected,
-    treasuryBalance,
-    isAdmin,
-  })
 
   const formatBalance = (balance: bigint | undefined) => {
     if (!balance) return '0.00'

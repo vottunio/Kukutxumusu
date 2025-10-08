@@ -1,7 +1,8 @@
 'use client'
 
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
+import { useWriteContract, useWaitForTransactionReceipt, useAccount, useReadContract, useEstimateGas } from 'wagmi'
 import { useState, useEffect } from 'react'
+import { encodeFunctionData, type Address } from 'viem'
 import { baseSepolia } from '@/lib/chains'
 import PaymentABI from '../../contracts/abis/KukuxumusuPayment_ABI.json'
 import { NATIVE_ETH_ADDRESS } from '@/config/tokens'
@@ -38,7 +39,14 @@ export function usePlaceBid() {
   const [isApproving, setIsApproving] = useState(false)
   const [isBidding, setIsBidding] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [gasEstimate, setGasEstimate] = useState<bigint | null>(null)
+  const [currentTokenForAllowance, setCurrentTokenForAllowance] = useState<string | null>(null)
+  const [bidParamsForEstimate, setBidParamsForEstimate] = useState<{
+    auctionId: number | bigint
+    tokenAddress: string
+    amount: bigint
+    valueInUSD: bigint
+    signature: `0x${string}`
+  } | null>(null)
   const [pendingBidParams, setPendingBidParams] = useState<{
     auctionId: number | bigint
     tokenAddress: string
@@ -46,6 +54,42 @@ export function usePlaceBid() {
     valueInUSD: bigint
     signature: `0x${string}`
   } | null>(null)
+
+  // Hook para verificar allowance actual
+  const { refetch: refetchAllowance } = useReadContract({
+    address: currentTokenForAllowance as Address,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: [address as Address, PAYMENT_CONTRACT_ADDRESS],
+    chainId: baseSepolia.id,
+    query: {
+      enabled: !!address && !!currentTokenForAllowance && currentTokenForAllowance !== NATIVE_ETH_ADDRESS,
+    },
+  })
+
+  // Hook para estimar gas real basado en parámetros del bid
+  const { data: gasEstimate } = useEstimateGas({
+    to: PAYMENT_CONTRACT_ADDRESS,
+    account: address,
+    data: bidParamsForEstimate ? 
+      encodeFunctionData({
+        abi: PaymentABI,
+        functionName: 'placeBid',
+        args: [
+          BigInt(bidParamsForEstimate.auctionId),
+          bidParamsForEstimate.tokenAddress as Address,
+          bidParamsForEstimate.amount,
+          bidParamsForEstimate.valueInUSD,
+          bidParamsForEstimate.signature,
+        ],
+      }) as `0x${string}`
+      : undefined,
+    value: bidParamsForEstimate?.tokenAddress === NATIVE_ETH_ADDRESS ? bidParamsForEstimate.amount : 0n,
+    chainId: baseSepolia.id,
+    query: {
+      enabled: !!address && !!bidParamsForEstimate,
+    },
+  })
 
   // Hook para aprobar tokens ERC20
   const {
@@ -112,27 +156,23 @@ export function usePlaceBid() {
 
 
   /**
-   * Estimar gas para transacciones
+   * Configurar parámetros para estimar gas
    */
   const estimateGasForBid = async (
-    _auctionId: number | bigint,
-    _tokenAddress: string,
-    _amount: bigint,
-    _valueInUSD: bigint,
-    _signature: `0x${string}`
+    auctionId: number | bigint,
+    tokenAddress: string,
+    amount: bigint,
+    valueInUSD: bigint,
+    signature: `0x${string}`
   ) => {
-    try {
-      const isNativeETH = _tokenAddress === NATIVE_ETH_ADDRESS
-      // Aquí podrías implementar la estimación real usando useEstimateGas
-      // Por ahora usamos valores conservadores
-      const estimatedGas = isNativeETH ? 200000n : 250000n // ETH nativo usa menos gas
-      setGasEstimate(estimatedGas)
-      return estimatedGas
-    } catch (err) {
-      console.warn('Gas estimation failed, using default:', err)
-      setGasEstimate(300000n) // Valor por defecto conservador
-      return 300000n
-    }
+    // Guardar parámetros para que el hook useEstimateGas los use
+    setBidParamsForEstimate({
+      auctionId,
+      tokenAddress,
+      amount,
+      valueInUSD,
+      signature,
+    })
   }
 
   /**
@@ -237,9 +277,16 @@ export function usePlaceBid() {
         return await placeBid(auctionId, tokenAddress, amount, valueInUSD, signature)
       }
 
-      // Para tokens ERC20, primero aprobar
-      if (!isApproveSuccess && !isApprovePending) {
+      // Configurar token para verificar allowance
+      setCurrentTokenForAllowance(tokenAddress)
+      
+      // Refetch allowance para obtener valor actualizado
+      const { data: allowance } = await refetchAllowance()
+      
+      // Para tokens ERC20, verificar si necesita aprobar
+      if (!allowance || (allowance as bigint) < amount) {
         console.log('🔑 Requesting token approval...')
+        console.log('Current allowance:', allowance?.toString(), 'Required:', amount.toString())
         
         // Guardar parámetros para ejecutar el bid después del approve
         setPendingBidParams({
@@ -255,8 +302,8 @@ export function usePlaceBid() {
         return true // La transacción de bid se ejecutará automáticamente
       }
 
-      // Si ya se aprobó, hacer bid directamente
-      console.log('🎯 Placing bid...')
+      // Si ya tiene suficiente allowance, hacer bid directamente
+      console.log('✅ Already approved, placing bid directly...')
       return await placeBid(auctionId, tokenAddress, amount, valueInUSD, signature)
     } catch (err: any) {
       setError(err.message || 'Error in bid process')
@@ -303,7 +350,9 @@ export function usePlaceBid() {
       setIsApproving(false)
       setIsBidding(false)
       setError(null)
-      setGasEstimate(null)
+      setBidParamsForEstimate(null)
+      setPendingBidParams(null)
+      setCurrentTokenForAllowance(null)
     },
   }
 }

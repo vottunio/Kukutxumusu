@@ -9,7 +9,7 @@ import { useIsTokenAllowedForAuction, useAuctionMinPrice } from '@/hooks/useAuct
 import { useHasSufficientBalance } from '@/hooks/useTokenBalance'
 import { useNetworkValidation } from '@/hooks/useNetworkValidation'
 import { formatUnits, parseUnits } from 'viem'
-import { getTokensByNetwork } from '@/config/tokens'
+import { getTokensByNetwork, NATIVE_ETH_ADDRESS } from '@/config/tokens'
 
 interface BidFormProps {
   auctionId: number
@@ -69,7 +69,8 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
   const [selectedToken, setSelectedToken] = useState<TokenOption | null>(null)
   const [bidAmount, setBidAmount] = useState('')
   const [isLoadingSignature, setIsLoadingSignature] = useState(false)
-  const { placeBidWithApproval, isApproving, isBidding, isSuccess, error, gasEstimate } = usePlaceBid()
+  const [showGasInfo, setShowGasInfo] = useState(false)
+  const { placeBidWithApproval, isApproving, isBidding, isSuccess, error, gasEstimate, reset } = usePlaceBid()
   const { isCorrectNetwork, switchToPaymentNetwork } = useNetworkValidation()
 
   const requiredAmount = bidAmount && selectedToken
@@ -94,14 +95,17 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
     if (isSuccess) {
       setBidAmount('')
       console.log('✅ Bid successful! Refreshing auction data...')
-      // Wait 2 seconds for blockchain to confirm, then refresh
+      
+      // Wait 2 seconds for blockchain to confirm, then refresh and reset
       setTimeout(() => {
         if (onSuccess) {
           onSuccess()
         }
+        // Reset el estado del hook para permitir otro bid
+        reset()
       }, 2000)
     }
-  }, [isSuccess, onSuccess])
+  }, [isSuccess, onSuccess, reset])
 
   const minPrice = useAuctionMinPrice(auctionId, selectedToken?.address || '')
 
@@ -279,17 +283,36 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
             {isConnected && isCorrectNetwork && !isLoadingSignature && !isApproving && !isBidding && 'Place Bid'}
           </Button>
 
-          {/* Gas Info */}
+          {/* Gas Info - Desplegable */}
           {gasEstimate && isConnected && selectedToken && (
-            <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-[10px] md:text-xs text-blue-800 text-center">
-                💡 Gas optimizado: ~{Number(gasEstimate).toLocaleString()} gas units
-                {selectedToken.address !== '0x0000000000000000000000000000000000000000' && (
-                  <span className="block mt-1">
-                    ✅ Aprove infinito activado - futuras pujas costarán menos gas
-                  </span>
-                )}
-              </p>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowGasInfo(!showGasInfo)}
+                className="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between text-xs md:text-sm text-gray-700"
+              >
+                <span className="font-medium">⚙️ Gas Info</span>
+                <svg
+                  className={`w-4 h-4 transition-transform ${showGasInfo ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showGasInfo && (
+                <div className="p-3 bg-blue-50 border-t border-blue-200">
+                  <p className="text-[10px] md:text-xs text-blue-800">
+                    💡 Gas estimado: <span className="font-mono font-semibold">~{Number(gasEstimate).toLocaleString()}</span> gas units
+                  </p>
+                  {selectedToken.address !== NATIVE_ETH_ADDRESS && (
+                    <p className="text-[10px] md:text-xs text-green-800 mt-2">
+                      ✅ Approve infinito activado - futuras pujas con este token solo necesitarán 1 confirmación
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

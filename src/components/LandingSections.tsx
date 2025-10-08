@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, HelpCircle, Info, Users, Zap, Shield, Globe } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export function LandingSections() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -40,71 +40,60 @@ export function LandingSections() {
   return (
     <div className="w-full">
       {/* About Us Section */}
-      <section className="py-20 bg-white">
+      <section className="py-12 md:py-16 lg:py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex justify-center mb-8">
-              <div className="p-4 bg-purple-100 rounded-full">
-                <Info className="w-12 h-12 text-purple-600" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+            {/* Left: Text Content */}
+            <div>
+              <h2 className="font-glina text-gray-900 mb-6 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5rem]" style={{ lineHeight: '1.1' }}>
+                One NFT, Every Auction, Forever.
+              </h2>
+              <p className="text-gray-600 leading-relaxed font-futura-book text-base sm:text-lg md:text-xl">
+                Behold, an infinite work of art! Adarbakar is a community-owned brand that makes a positive impact by funding ideas and fostering collaboration. From collectors and technologists, to non-profits and brands, Adarbakar is for everyone.
+              </p>
+            </div>
+
+            {/* Right: Video/Image Placeholder */}
+            <div className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-gray-500 font-futura-book">Video Placeholder</p>
+                <p className="text-sm text-gray-400 mt-2">YouTube embed goes here</p>
               </div>
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-6">
-              About Adarbakar
-            </h2>
-            <p className="text-xl text-gray-600 mb-12 leading-relaxed">
-              We&apos;re pioneering the future of cross-chain NFT marketplaces by combining the best of multiple blockchain networks. 
-              Our platform bridges the gap between different ecosystems, creating a seamless experience for collectors and creators alike.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+          </div>
+
+          {/* Second Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center mt-12 md:mt-16 lg:mt-20">
+            {/* Left: Video/Image Placeholder */}
+            <div className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
               <div className="text-center">
-                <div className="p-4 bg-blue-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Zap className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Cross-Chain Innovation</h3>
-                <p className="text-gray-600">
-                  Leveraging Base and Story Protocol to create a seamless multi-chain experience
-                </p>
+                <p className="text-gray-500 font-futura-book">Video Placeholder</p>
+                <p className="text-sm text-gray-400 mt-2">YouTube embed goes here</p>
               </div>
-              
-              <div className="text-center">
-                <div className="p-4 bg-green-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Shield className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Secure & Transparent</h3>
-                <p className="text-gray-600">
-                  All transactions are processed on-chain with full transparency and security
-                </p>
-              </div>
-              
-              <div className="text-center">
-                <div className="p-4 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Users className="w-8 h-8 text-purple-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Community Driven</h3>
-                <p className="text-gray-600">
-                  Built by the community, for the community, with decentralized governance
-                </p>
-              </div>
+            </div>
+
+            {/* Right: Text Content */}
+            <div>
+              <h2 className="font-glina text-gray-900 mb-6 text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5rem]" style={{ lineHeight: '1.1' }}>
+                Build With Adarbakar. Get Funded.
+              </h2>
+              <p className="text-gray-600 leading-relaxed font-futura-book text-base sm:text-lg md:text-xl">
+                There&apos;s a way for everyone to get involved with Adarbakar. From whimsical endeavors like naming a frog, to ambitious projects like constructing a giant float for the Rose Parade, or even crypto infrastructure like Prop House. Adarbakar funds projects of all kinds.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 md:py-16 lg:py-20" style={{ backgroundColor: 'rgb(255, 166, 38)' }}>
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-16">
-              <div className="flex justify-center mb-8">
-                <div className="p-4 bg-purple-100 rounded-full">
-                  <HelpCircle className="w-12 h-12 text-purple-600" />
-                </div>
-              </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+            <div className="text-center mb-12 md:mb-16">
+              <h2 className="font-glina text-gray-900 mb-4 md:mb-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-[4rem]">
                 Frequently Asked Questions
               </h2>
-              <p className="text-xl text-gray-600">
+              <p className="text-gray-600 font-futura-book text-base sm:text-lg md:text-xl">
                 Everything you need to know about Adarbakar NFT marketplace
               </p>
             </div>
@@ -113,26 +102,26 @@ export function LandingSections() {
               {faqs.map((faq, index) => (
                 <div
                   key={index}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+                  className="overflow-hidden"
                 >
                   <button
                     onClick={() => toggleFaq(index)}
-                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="w-full text-left flex items-center justify-between transition-colors py-2"
                   >
-                    <span className="text-lg font-semibold text-gray-900 pr-4">
+                    <span className="font-semibold text-gray-900 pr-4 font-futura text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[2.5rem]">
                       {faq.question}
                     </span>
                     {openFaq === index ? (
-                      <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-gray-500 flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-gray-500 flex-shrink-0" />
                     )}
                   </button>
                   
                   {openFaq === index && (
-                    <div className="px-6 pb-4">
-                      <div className="pt-2 border-t border-gray-100">
-                        <p className="text-gray-600 leading-relaxed">
+                    <div className="pb-4">
+                      <div className="pt-2">
+                        <p className="text-gray-600 leading-relaxed font-futura-book text-sm sm:text-base md:text-lg">
                           {faq.answer}
                         </p>
                       </div>
@@ -140,34 +129,6 @@ export function LandingSections() {
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action Section */}
-      <section className="py-20 bg-gradient-to-r from-purple-600 to-pink-600">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex justify-center mb-8">
-              <div className="p-4 bg-white/20 rounded-full">
-                <Globe className="w-12 h-12 text-white" />
-              </div>
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-6">
-              Ready to Join the Revolution?
-            </h2>
-            <p className="text-xl text-white/90 mb-8 leading-relaxed">
-              Connect your wallet and start exploring unique NFTs across multiple blockchains. 
-              Be part of the future of digital collectibles.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <button className="px-8 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold">
-                Connect Wallet
-              </button>
-              <button className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg hover:bg-white hover:text-purple-600 transition-colors font-semibold">
-                Explore NFTs
-              </button>
             </div>
           </div>
         </div>

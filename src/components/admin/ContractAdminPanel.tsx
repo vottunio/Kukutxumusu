@@ -27,6 +27,9 @@ export function ContractAdminPanel() {
   const { writeContract, data: hash, isPending, error } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
 
+  // Track which config action is being processed
+  const [processingAction, setProcessingAction] = useState<'treasury' | 'signer' | 'nftContract' | null>(null)
+
   // Token Management State
   const [tokenAddress, setTokenAddress] = useState('')
   //const [tokenPrice] = useState('')
@@ -88,6 +91,7 @@ export function ContractAdminPanel() {
   // Config Functions
   const handleSetTreasury = async () => {
     if (!newTreasury) return
+    setProcessingAction('treasury')
     writeContract({
       address: PAYMENT_CONTRACT_ADDRESS,
       abi: PaymentABI,
@@ -99,6 +103,7 @@ export function ContractAdminPanel() {
 
   const handleSetSigner = async () => {
     if (!newSigner) return
+    setProcessingAction('signer')
     writeContract({
       address: PAYMENT_CONTRACT_ADDRESS,
       abi: PaymentABI,
@@ -110,6 +115,7 @@ export function ContractAdminPanel() {
 
   const handleSetAllowedNFTContract = async () => {
     if (!nftContractAddress) return
+    setProcessingAction('nftContract')
     writeContract({
       address: PAYMENT_CONTRACT_ADDRESS,
       abi: PaymentABI,
@@ -302,9 +308,15 @@ export function ContractAdminPanel() {
                   placeholder="New Treasury Address (0x...)"
                   className="w-full px-4 py-2 border rounded-lg"
                 />
-                <Button onClick={handleSetTreasury} disabled={!isConnected || isPending}>
-                  {isPending ? 'Processing...' : 'Update Treasury'}
+                <Button onClick={handleSetTreasury} disabled={!isConnected || (isPending && processingAction === 'treasury')}>
+                  {isPending && processingAction === 'treasury' ? 'Processing...' : 'Update Treasury'}
                 </Button>
+                {isSuccess && processingAction === 'treasury' && (
+                  <p className="text-sm text-green-600 mt-2">✓ Treasury updated successfully</p>
+                )}
+                {error && processingAction === 'treasury' && (
+                  <p className="text-sm text-red-600 mt-2">✗ {error.message}</p>
+                )}
               </div>
             </div>
 
@@ -318,9 +330,15 @@ export function ContractAdminPanel() {
                   placeholder="Relayer Address (0x...)"
                   className="w-full px-4 py-2 border rounded-lg"
                 />
-                <Button onClick={handleSetSigner} disabled={!isConnected || isPending}>
-                  {isPending ? 'Processing...' : 'Update Signer'}
+                <Button onClick={handleSetSigner} disabled={!isConnected || (isPending && processingAction === 'signer')}>
+                  {isPending && processingAction === 'signer' ? 'Processing...' : 'Update Signer'}
                 </Button>
+                {isSuccess && processingAction === 'signer' && (
+                  <p className="text-sm text-green-600 mt-2">✓ Signer updated successfully</p>
+                )}
+                {error && processingAction === 'signer' && (
+                  <p className="text-sm text-red-600 mt-2">✗ {error.message}</p>
+                )}
               </div>
             </div>
 
@@ -352,9 +370,15 @@ export function ContractAdminPanel() {
                     <span>Disallow</span>
                   </label>
                 </div>
-                <Button onClick={handleSetAllowedNFTContract} disabled={!isConnected || isPending}>
-                  {isPending ? 'Processing...' : 'Set NFT Contract Status'}
+                <Button onClick={handleSetAllowedNFTContract} disabled={!isConnected || (isPending && processingAction === 'nftContract')}>
+                  {isPending && processingAction === 'nftContract' ? 'Processing...' : 'Set NFT Contract Status'}
                 </Button>
+                {isSuccess && processingAction === 'nftContract' && (
+                  <p className="text-sm text-green-600 mt-2">✓ NFT Contract status updated successfully</p>
+                )}
+                {error && processingAction === 'nftContract' && (
+                  <p className="text-sm text-red-600 mt-2">✗ {error.message}</p>
+                )}
                 <p className="text-xs text-gray-500">
                   ℹ️ Use: <code className="bg-gray-100 px-1 rounded">{process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}</code>
                 </p>

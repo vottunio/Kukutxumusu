@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useWallet } from '@/hooks/useWallet'
 import { usePlaceBid } from '@/hooks/usePlaceBid'
@@ -10,7 +10,6 @@ import { useHasSufficientBalance } from '@/hooks/useTokenBalance'
 import { useNetworkValidation } from '@/hooks/useNetworkValidation'
 import { formatUnits, parseUnits } from 'viem'
 import { getTokensByNetwork } from '@/config/tokens'
-import { AlertCircle } from 'lucide-react'
 
 interface BidFormProps {
   auctionId: number
@@ -50,14 +49,14 @@ function TokenButton({
     <button
       type="button"
       onClick={onClick}
-      className={`p-3 rounded-lg border-2 transition-all ${
+      className={`p-2 md:p-3 rounded-lg border-2 transition-all ${
         isSelected
           ? 'border-purple-600 bg-purple-50'
           : 'border-gray-200 hover:border-gray-300'
       }`}
     >
-      <p className="font-bold">{token.symbol}</p>
-      <p className="text-xs text-gray-500 mt-1">
+      <p className="font-bold text-sm md:text-base">{token.symbol}</p>
+      <p className="text-[10px] md:text-xs text-gray-500 mt-1">
         Min: {formattedMinPrice}
       </p>
     </button>
@@ -114,13 +113,10 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
       return
     }
 
-    // Check network
+    // Check network - if wrong network, switch instead of submitting
     if (!isCorrectNetwork) {
-      const switched = await switchToPaymentNetwork()
-      if (!switched) {
-        alert('Please switch to Base Sepolia network')
-        return
-      }
+      await switchToPaymentNetwork()
+      return
     }
 
     if (!bidAmount || parseFloat(bidAmount) <= 0) {
@@ -203,129 +199,90 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
   const decimalsToShow = selectedToken?.decimals === 6 ? 2 : 4
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Place Your Bid</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Token Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Token
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {allTokens.map((token) => (
-                <TokenButton
-                  key={token.address}
-                  token={token}
-                  auctionId={auctionId}
-                  isSelected={selectedToken?.address === token.address}
-                  onClick={() => setSelectedToken(token)}
+    <Card className="bg-transparent border-0 shadow-none p-0">
+      <CardContent className="p-0">
+        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+          {/* Token Selector and Amount Input - Same Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            {/* Token Selector */}
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
+                Payment Token
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+                {allTokens.map((token) => (
+                  <TokenButton
+                    key={token.address}
+                    token={token}
+                    auctionId={auctionId}
+                    isSelected={selectedToken?.address === token.address}
+                    onClick={() => setSelectedToken(token)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Amount Input */}
+            <div>
+              <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
+                Bid Amount
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step={selectedToken?.decimals === 6 ? '0.01' : '0.0001'}
+                  min="0"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                  placeholder={suggestedBid > 0 ? `Min: ${suggestedBid.toFixed(decimalsToShow)}` : '0.0'}
+                  className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  disabled={isApproving || isBidding}
                 />
-              ))}
+                <div className="absolute right-2 md:right-3 top-2.5 md:top-3 text-gray-500 font-medium text-sm md:text-base">
+                  {selectedToken?.symbol || 'ETH'}
+                </div>
+              </div>
+              {suggestedBid > 0 && (
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+                  Minimum: {suggestedBid.toFixed(decimalsToShow)} {selectedToken?.symbol}
+                </p>
+              )}
             </div>
           </div>
-
-          {/* Amount Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bid Amount
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                step={selectedToken?.decimals === 6 ? '0.01' : '0.0001'}
-                min="0"
-                value={bidAmount}
-                onChange={(e) => setBidAmount(e.target.value)}
-                placeholder={suggestedBid > 0 ? `Min: ${suggestedBid.toFixed(decimalsToShow)}` : '0.0'}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                disabled={isApproving || isBidding}
-              />
-              <div className="absolute right-3 top-3 text-gray-500 font-medium">
-                {selectedToken?.symbol || 'ETH'}
-              </div>
-            </div>
-            {suggestedBid > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                Minimum: {suggestedBid.toFixed(decimalsToShow)} {selectedToken?.symbol}
-              </p>
-            )}
-          </div>
-
-          {/* Network Warning */}
-          {isConnected && !isCorrectNetwork && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-yellow-800">Wrong Network</p>
-                <p className="text-xs text-yellow-700 mt-1">
-                  Please switch to Base Sepolia to place bids
-                </p>
-                <button
-                  type="button"
-                  onClick={switchToPaymentNetwork}
-                  className="mt-2 text-xs text-yellow-800 underline hover:text-yellow-900"
-                >
-                  Switch Network
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Balance Warning */}
-          {isConnected && selectedToken && bidAmount && !hasSufficient && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-800">Insufficient Balance</p>
-                <p className="text-xs text-red-700 mt-1">
-                  Balance: {formattedBalance} {selectedToken.symbol}
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="p-2 md:p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-xs md:text-sm text-red-800">{error}</p>
             </div>
           )}
 
           {/* Success Message */}
           {isSuccess && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800">Bid placed successfully! 🎉</p>
-            </div>
-          )}
-
-          {/* Auction Ended Warning */}
-          {disabled && (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="text-sm text-gray-600 text-center">This auction has ended</p>
+            <div className="p-2 md:p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-xs md:text-sm text-green-800">Bid placed successfully! 🎉</p>
             </div>
           )}
 
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full"
+            className="w-full text-sm md:text-base"
             size="lg"
-            disabled={disabled || !isConnected || isLoadingSignature || isApproving || isBidding || !bidAmount || !selectedToken}
+            disabled={disabled || !isConnected || !isCorrectNetwork || isLoadingSignature || isApproving || isBidding || !bidAmount || !selectedToken}
           >
             {!isConnected && 'Connect Wallet'}
-            {isConnected && isLoadingSignature && 'Getting Price...'}
-            {isConnected && isApproving && 'Approving Token...'}
-            {isConnected && isBidding && 'Placing Bid...'}
-            {isConnected && !isLoadingSignature && !isApproving && !isBidding && 'Place Bid'}
+            {isConnected && !isCorrectNetwork && 'Switch to Base Sepolia'}
+            {isConnected && isCorrectNetwork && isLoadingSignature && 'Getting Price...'}
+            {isConnected && isCorrectNetwork && isApproving && 'Approving Token...'}
+            {isConnected && isCorrectNetwork && isBidding && 'Placing Bid...'}
+            {isConnected && isCorrectNetwork && !isLoadingSignature && !isApproving && !isBidding && 'Place Bid'}
           </Button>
 
           {/* Gas Info */}
           {gasEstimate && isConnected && selectedToken && (
             <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-800 text-center">
+              <p className="text-[10px] md:text-xs text-blue-800 text-center">
                 💡 Gas optimizado: ~{Number(gasEstimate).toLocaleString()} gas units
                 {selectedToken.address !== '0x0000000000000000000000000000000000000000' && (
                   <span className="block mt-1">
@@ -338,22 +295,22 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
 
           {/* Info */}
           {!isConnected && (
-            <p className="text-xs text-center text-gray-500">
+            <p className="text-[10px] md:text-xs text-center text-gray-500">
               Connect your wallet to place a bid
             </p>
           )}
           {isLoadingSignature && (
-            <p className="text-xs text-center text-gray-500">
+            <p className="text-[10px] md:text-xs text-center text-gray-500">
               Getting token price and signature from relayer...
             </p>
           )}
           {isApproving && (
-            <p className="text-xs text-center text-gray-500">
+            <p className="text-[10px] md:text-xs text-center text-gray-500">
               Step 1/2: Approving {selectedToken?.symbol} for spending...
             </p>
           )}
           {isBidding && (
-            <p className="text-xs text-center text-gray-500">
+            <p className="text-[10px] md:text-xs text-center text-gray-500">
               Step 2/2: Submitting your bid...
             </p>
           )}

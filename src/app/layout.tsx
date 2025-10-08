@@ -1,15 +1,17 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import '@rainbow-me/rainbowkit/styles.css'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Header } from '@/components/Header'
 
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Adarbakar',
   description: 'Cross-chain NFT marketplace on Story Protocol and Base',
+  icons: {
+    icon: '/images/Adarbakar Branding.png',
+    apple: '/images/Adarbakar Branding.png',
+  },
 }
 
 export default function RootLayout({
@@ -19,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-futura">
         <Providers>
           <Header />
           {children}

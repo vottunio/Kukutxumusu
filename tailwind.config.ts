@@ -16,6 +16,11 @@ const config: Config = {
   		}
   	},
   	extend: {
+  		fontFamily: {
+  			futura: ['Futura PT Demi', 'sans-serif'],
+  			glina: ['Glina Script', 'cursive'],
+  			'futura-book': ['Futura PT Book', 'sans-serif'],
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',

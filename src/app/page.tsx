@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import Image from 'next/image'
 import { useActiveAuctions, useAuction } from '@/hooks/useAuction'
 import { usePlaceBid } from '@/hooks/usePlaceBid'
 import { AuctionCard } from '@/components/auction/AuctionCard'
@@ -87,55 +87,129 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
-      {/* Hero section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <h1 className="text-6xl font-bold text-gray-900 mb-6">
-          Adarbakar NFT
-          </h1>
-          <p className="text-2xl text-gray-600 mb-8">
-            Cross-chain NFT marketplace powered by Base & Story Protocol
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Link
-              href="/explore"
-              className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-            >
-              Explore NFTs
-            </Link>
-            <Link
-              href="/admin"
-              className="px-8 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-            >
-              Admin Panel
-            </Link>
-          </div>
-        </div>
-
+    <main className="min-h-screen w-full" style={{ backgroundColor: 'rgb(255, 166, 38)' }}>
+      <div className="w-full max-w-5xl mx-auto px-4 py-8 sm:py-16">
         {/* Featured Auction Section with Carousel */}
-        <div className="max-w-6xl mx-auto mb-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Active Auctions
-            </h2>
-            {actualActiveCount > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">
-                  {currentIndex + 1} of {actualActiveCount}
-                </span>
-              </div>
-            )}
-          </div>
-
+        <div className="mb-16">
           {!isClient || isLoading ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <p className="text-gray-500">Loading auctions...</p>
             </div>
           ) : actualActiveCount === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <p className="text-gray-500">No active auctions at the moment</p>
-              <p className="text-sm text-gray-400 mt-2">Check back soon!</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left: Example Image */}
+              <div className="relative aspect-square rounded-xl overflow-hidden">
+                <Image
+                  src="/images/Adarbakar-1.jpg"
+                  alt="Example NFT"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+
+              {/* Right: Bid Section */}
+              <div className="space-y-2">
+                {/* Title */}
+                <h1 className="font-glina text-gray-900 text-4xl sm:text-5xl lg:text-[68px]" style={{ lineHeight: '1' }}>
+                  Adarbakar
+                </h1>
+
+                {/* Current Bid and Timer */}
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Current bid</p>
+                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">Ξ 1.50</p>
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Auction ends in</p>
+                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold">3h 28m 23s</p>
+                  </div>
+                </div>
+
+                {/* Bid Form and History Container */}
+                <div>
+                  <BidForm
+                    auctionId={0}
+                    currentHighestBid={0n}
+                    currentHighestToken=""
+                    onSuccess={() => {}}
+                    disabled={true}
+                  />
+
+                  {/* Example Bids */}
+                  <BidderList
+                    bids={[
+                      {
+                        bidder: '0x1234567890abcdef1234567890abcdef12345678',
+                        amount: 1500000000000000000n,
+                        token: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                        valueInUSD: 2500000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 3600000) / 1000)),
+                        transactionHash: '0xabcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234',
+                      },
+                      {
+                        bidder: '0x8765432109876543210987654321098765432109',
+                        amount: 1000000000n,
+                        token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+                        valueInUSD: 1000000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 7200000) / 1000)),
+                        transactionHash: '0xefgh5678efgh5678efgh5678efgh5678efgh5678efgh5678efgh5678efgh5678',
+                      },
+                      {
+                        bidder: '0xabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd',
+                        amount: 500000000000000000n,
+                        token: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                        valueInUSD: 800000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 10800000) / 1000)),
+                        transactionHash: '0xijkl9012ijkl9012ijkl9012ijkl9012ijkl9012ijkl9012ijkl9012ijkl9012',
+                      },
+                      {
+                        bidder: '0x5555555555555555555555555555555555555555',
+                        amount: 400000000000000000n,
+                        token: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                        valueInUSD: 650000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 14400000) / 1000)),
+                        transactionHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
+                      },
+                      {
+                        bidder: '0x9999999999999999999999999999999999999999',
+                        amount: 300000000000000000n,
+                        token: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                        valueInUSD: 500000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 18000000) / 1000)),
+                        transactionHash: '0x2222222222222222222222222222222222222222222222222222222222222222',
+                      },
+                      {
+                        bidder: '0x7777777777777777777777777777777777777777',
+                        amount: 500000000n,
+                        token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+                        valueInUSD: 500000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 21600000) / 1000)),
+                        transactionHash: '0x3333333333333333333333333333333333333333333333333333333333333333',
+                      },
+                      {
+                        bidder: '0x6666666666666666666666666666666666666666',
+                        amount: 200000000000000000n,
+                        token: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                        valueInUSD: 330000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 25200000) / 1000)),
+                        transactionHash: '0x4444444444444444444444444444444444444444444444444444444444444444',
+                      },
+                      {
+                        bidder: '0x3333333333333333333333333333333333333333',
+                        amount: 100000000000000000n,
+                        token: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                        valueInUSD: 165000000000000000000n,
+                        timestamp: BigInt(Math.floor((Date.now() - 28800000) / 1000)),
+                        transactionHash: '0x5555555555555555555555555555555555555555555555555555555555555555',
+                      },
+                    ]}
+                    currentHighestBidder="0x1234567890abcdef1234567890abcdef12345678"
+                    bidTransactionHashes={{}}
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="relative">
@@ -160,14 +234,14 @@ export default function Home() {
               )}
 
               {/* Auction Content */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 rounded-xl" style={{ backgroundColor: 'rgb(255, 166, 38)' }}>
                 {/* Left: Auction Card */}
                 <div>
                   <AuctionCard auction={auction!} auctionId={currentAuctionId!} />
                 </div>
 
                 {/* Right: Bid Form & Bidder List */}
-                <div className="space-y-6">
+                <div>
                   <BidForm
                     auctionId={currentAuctionId!}
                     currentHighestBid={auction!.highestBid}
@@ -205,7 +279,7 @@ export default function Home() {
         </div>
 
         {/* Recently Minted NFTs */}
-        <div className="max-w-6xl mx-auto mt-16">
+        {/* <div className="max-w-6xl mx-auto mt-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
             Recently Minted
           </h2>
@@ -213,7 +287,7 @@ export default function Home() {
             <p className="text-gray-500">No NFTs minted yet</p>
             <p className="text-sm text-gray-400 mt-2">Be the first to mint!</p>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Landing Sections - About Us & FAQ */}

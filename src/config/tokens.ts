@@ -75,6 +75,7 @@ export const TOKEN_SYMBOLS: Record<string, string> = Object.values(TOKENS).reduc
 
 // Función helper para obtener símbolo de token por dirección
 export function getTokenSymbol(address: string): string {
+  if (!address) return 'Unknown'
   return TOKEN_SYMBOLS[address.toLowerCase()] || 'Unknown'
 }
 

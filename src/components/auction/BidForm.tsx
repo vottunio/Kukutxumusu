@@ -138,7 +138,7 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
     // Debounce para no hacer demasiadas requests
     const timeoutId = setTimeout(estimateGas, 500)
     return () => clearTimeout(timeoutId)
-  }, [selectedToken, bidAmount, isConnected, address, auctionId, estimateGasForBid])
+  }, [selectedToken, bidAmount, isConnected, address, auctionId])
 
   // Handle successful bid
   useEffect(() => {

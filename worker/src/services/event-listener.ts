@@ -106,6 +106,7 @@ export class EventListener {
     }
 
     // Get AuctionWon events
+    console.log(`🎯 Searching for AuctionWon events at contract: ${PAYMENT_CONTRACT_ADDRESS}`)
     const auctionLogs = await baseClient.getLogs({
       address: PAYMENT_CONTRACT_ADDRESS,
       event: AUCTION_WON_EVENT,
@@ -113,7 +114,13 @@ export class EventListener {
       toBlock: currentBlock,
     })
 
+    console.log(`🔍 Found ${auctionLogs.length} AuctionWon events`)
     if (auctionLogs.length > 0) {
+      console.log(`🎯 AuctionWon events:`, auctionLogs.map(log => ({
+        blockNumber: log.blockNumber,
+        txHash: log.transactionHash,
+        args: log.args
+      })))
       console.log(`📥 Found ${auctionLogs.length} AuctionWon event(s)`)
 
       for (const log of auctionLogs) {

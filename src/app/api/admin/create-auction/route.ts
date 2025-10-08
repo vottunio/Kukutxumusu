@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
         extensionTime: Number(extensionInSeconds),
         triggerTime: Number(triggerInSeconds),
         allowedTokens: selectedTokens.map((addr: string) => addr.toLowerCase()),
-        minPrices: minPricesArray.map((price: bigint) => price.toString()),
-        discounts: discountsArray.map((discount: bigint) => discount.toString()),
+        minPrices: minPricesArray, // Already strings from frontend
+        discounts: discountsArray, // Already strings from frontend
         status: 'ACTIVE',
       },
     })

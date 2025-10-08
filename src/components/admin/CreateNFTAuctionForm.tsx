@@ -347,15 +347,15 @@ export function CreateNFTAuctionForm() {
       const extensionInSeconds = enableAntiSniping ? BigInt(Number(antiSnipingExtension) * 60) : BigInt(0)
       const triggerInSeconds = enableAntiSniping ? BigInt(Number(antiSnipingTrigger) * 60) : BigInt(0)
 
-      // Store auction data for later use
+      // Store auction data for later use (convert BigInt to string for JSON serialization)
       setAuctionData({
         selectedTokens,
-        minPrices: minPricesArray,
-        discounts: discountsArray,
-        extensionInSeconds,
-        triggerInSeconds,
-        durationInSeconds,
-        startTimeTimestamp,
+        minPrices: minPricesArray.map(p => p.toString()),
+        discounts: discountsArray.map(d => d.toString()),
+        extensionInSeconds: extensionInSeconds.toString(),
+        triggerInSeconds: triggerInSeconds.toString(),
+        durationInSeconds: durationInSeconds.toString(),
+        startTimeTimestamp: startTimeTimestamp.toString(),
       })
 
       writeContract({

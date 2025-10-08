@@ -38,6 +38,7 @@ export function CreateNFTAuctionForm() {
   const [startTime, setStartTime] = useState<'now' | 'scheduled'>('now')
   const [scheduledDate, setScheduledDate] = useState('')
   const [duration, setDuration] = useState('24')
+  const [durationUnit, setDurationUnit] = useState<'hours' | 'minutes'>('hours')
   const [baseUsdtPrice, setBaseUsdtPrice] = useState('100') // Precio base en USDT
   const [selectedTokens, setSelectedTokens] = useState<string[]>([availableTokens[0].address])
   const [minPrices, setMinPrices] = useState<{ [key: string]: string }>({
@@ -328,7 +329,10 @@ export function CreateNFTAuctionForm() {
         startTimeTimestamp = BigInt(0)
       }
 
-      const durationInSeconds = BigInt(Number(duration) * 3600)
+      // Convert duration to seconds based on unit
+      const durationInSeconds = durationUnit === 'hours'
+        ? BigInt(Number(duration) * 3600)
+        : BigInt(Number(duration) * 60)
 
       const minPricesArray = selectedTokens.map(token => {
         const price = minPrices[token] || '0'
@@ -600,17 +604,28 @@ export function CreateNFTAuctionForm() {
             {/* Duration */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Auction Duration (hours) *
+                Auction Duration *
               </label>
-              <input
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="24"
-                min="1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  placeholder="24"
+                  min="1"
+                  step="any"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  required
+                />
+                <select
+                  value={durationUnit}
+                  onChange={(e) => setDurationUnit(e.target.value as 'hours' | 'minutes')}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                >
+                  <option value="hours">Hours</option>
+                  <option value="minutes">Minutes</option>
+                </select>
+              </div>
             </div>
 
             {/* Base USDT Price */}

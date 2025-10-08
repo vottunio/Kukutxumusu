@@ -39,11 +39,31 @@ export async function GET(request: Request) {
       })
     }
 
-    // Get NFT IDs (pagination)
-    const nftIds = Array.from({ length: total }, (_, i) => i).slice(offset, offset + limit)
+    // Try to find all minted token IDs by checking a range
+    // Since tokenIds may not be sequential, we check a larger range
+    const maxTokenIdToCheck = Math.max(total * 10, 100) // Check up to 10x totalMinted or 100
+    const nftIds: number[] = []
+
+    for (let tokenId = 0; tokenId < maxTokenIdToCheck && nftIds.length < total; tokenId++) {
+      try {
+        // Try to get owner - if it doesn't revert, the token exists
+        await publicClient.readContract({
+          address: NFT_CONTRACT_ADDRESS,
+          abi: NFTFactoryABI,
+          functionName: 'ownerOf',
+          args: [tokenId],
+        })
+        nftIds.push(tokenId)
+      } catch {
+        // Token doesn't exist, skip
+      }
+    }
+
+    // Apply pagination to found token IDs
+    const paginatedNftIds = nftIds.slice(offset, offset + limit)
 
     // Fetch NFT data for each ID
-    const nftPromises = nftIds.map(async (tokenId) => {
+    const nftPromises = paginatedNftIds.map(async (tokenId) => {
       try {
 
         // Get owner

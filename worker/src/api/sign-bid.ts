@@ -28,7 +28,7 @@ export async function signBidEndpoint(req: Request, res: Response) {
     })
 
     // Validate request
-    if (!body.auctionId || typeof body.auctionId !== 'number') {
+    if (body.auctionId === undefined || body.auctionId === null || typeof body.auctionId !== 'number') {
       return res.status(400).json({
         success: false,
         error: 'Invalid auction ID',

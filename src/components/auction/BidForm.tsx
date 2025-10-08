@@ -70,7 +70,8 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
   const [bidAmount, setBidAmount] = useState('')
   const [isLoadingSignature, setIsLoadingSignature] = useState(false)
   const [showGasInfo, setShowGasInfo] = useState(false)
-  const { placeBidWithApproval, isApproving, isBidding, isSuccess, error, gasEstimate, reset } = usePlaceBid()
+  const [signatureData, setSignatureData] = useState<{valueInUSD: bigint, signature: `0x${string}`} | null>(null)
+  const { placeBidWithApproval, isApproving, isBidding, isSuccess, error, gasEstimate, estimateGasForBid, reset } = usePlaceBid()
   const { isCorrectNetwork, switchToPaymentNetwork } = useNetworkValidation()
 
   const requiredAmount = bidAmount && selectedToken
@@ -90,12 +91,61 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
     }
   }, [allTokens, selectedToken])
 
+  // Auto-estimate gas when token or amount changes
+  useEffect(() => {
+    const estimateGas = async () => {
+      if (!isConnected || !address || !selectedToken || !bidAmount || parseFloat(bidAmount) <= 0) {
+        setSignatureData(null)
+        return
+      }
+
+      try {
+        const amountInWei = parseUnits(bidAmount, selectedToken.decimals)
+
+        // Get signature from relayer
+        const signResponse = await fetch('/api/sign-bid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            auctionId,
+            bidder: address,
+            tokenAddress: selectedToken.address,
+            amount: amountInWei.toString(),
+          }),
+        })
+
+        if (!signResponse.ok) return
+
+        const signData = await signResponse.json()
+        const valueInUSD = BigInt(signData.data.valueInUSD)
+        const signature = signData.data.signature as `0x${string}`
+
+        setSignatureData({ valueInUSD, signature })
+
+        // Estimate gas with the signature
+        await estimateGasForBid(
+          auctionId,
+          selectedToken.address,
+          amountInWei,
+          valueInUSD,
+          signature
+        )
+      } catch (err) {
+        console.error('Error estimating gas:', err)
+      }
+    }
+
+    // Debounce para no hacer demasiadas requests
+    const timeoutId = setTimeout(estimateGas, 500)
+    return () => clearTimeout(timeoutId)
+  }, [selectedToken, bidAmount, isConnected, address, auctionId, estimateGasForBid])
+
   // Handle successful bid
   useEffect(() => {
     if (isSuccess) {
       setBidAmount('')
-      console.log('✅ Bid successful! Refreshing auction data...')
-      
+      setSignatureData(null)
+
       // Wait 2 seconds for blockchain to confirm, then refresh and reset
       setTimeout(() => {
         if (onSuccess) {
@@ -149,31 +199,41 @@ export function BidForm({ auctionId, currentHighestBid, currentHighestToken, onS
         return
       }
 
-      // Obtener valueInUSD y signature del relayer
-      setIsLoadingSignature(true)
-      const signResponse = await fetch('/api/sign-bid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          auctionId,
-          bidder: address,
-          tokenAddress: selectedToken.address,
-          amount: amountInWei.toString(),
-        }),
-      })
+      // Use cached signature data if available, otherwise fetch new one
+      let valueInUSD: bigint
+      let signature: `0x${string}`
 
-      if (!signResponse.ok) {
-        const error = await signResponse.json()
-        alert(`Failed to sign bid: ${error.error || 'Unknown error'}`)
+      if (signatureData) {
+        // Use cached data from auto-estimate
+        valueInUSD = signatureData.valueInUSD
+        signature = signatureData.signature
+      } else {
+        // Fallback: fetch signature if not cached
+        setIsLoadingSignature(true)
+        const signResponse = await fetch('/api/sign-bid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            auctionId,
+            bidder: address,
+            tokenAddress: selectedToken.address,
+            amount: amountInWei.toString(),
+          }),
+        })
+
+        if (!signResponse.ok) {
+          const error = await signResponse.json()
+          alert(`Failed to sign bid: ${error.error || 'Unknown error'}`)
+          setIsLoadingSignature(false)
+          return
+        }
+
         setIsLoadingSignature(false)
-        return
+
+        const signData = await signResponse.json()
+        valueInUSD = BigInt(signData.data.valueInUSD)
+        signature = signData.data.signature as `0x${string}`
       }
-
-      setIsLoadingSignature(false)
-
-      const signData = await signResponse.json()
-      const valueInUSD = BigInt(signData.data.valueInUSD)
-      const signature = signData.data.signature as `0x${string}`
 
       await placeBidWithApproval(
         auctionId,

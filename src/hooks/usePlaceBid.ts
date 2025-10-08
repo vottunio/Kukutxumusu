@@ -54,6 +54,7 @@ export function usePlaceBid() {
     valueInUSD: bigint
     signature: `0x${string}`
   } | null>(null)
+  const [localIsSuccess, setLocalIsSuccess] = useState(false)
 
   // Hook para verificar allowance actual
   const { refetch: refetchAllowance } = useReadContract({
@@ -136,21 +137,25 @@ export function usePlaceBid() {
 
   // Resetear estado cuando la transacción se confirma
   useEffect(() => {
-    if (isBidSuccess && bidHash && pendingBidParams) {
-      setIsBidding(false)
-      
-      // Almacenar el hash de transacción con los datos del bid
-      // Formato: bidder-token-amount (para coincidir con BidderList)
-      const key = `${address}-${pendingBidParams.tokenAddress}-${pendingBidParams.amount}`
-      setBidTransactionHashes(prev => ({
-        ...prev,
-        [key]: bidHash
-      }))
-      
-      console.log('✅ Bid transaction confirmed successfully!')
-      console.log('📝 Stored transaction hash:', bidHash, 'for bid:', key)
-      
-      setPendingBidParams(null)
+    if (isBidSuccess) {
+      setLocalIsSuccess(true)
+
+      if (bidHash && pendingBidParams) {
+        setIsBidding(false)
+
+        // Almacenar el hash de transacción con los datos del bid
+        // Formato: bidder-token-amount (para coincidir con BidderList)
+        const key = `${address}-${pendingBidParams.tokenAddress}-${pendingBidParams.amount}`
+        setBidTransactionHashes(prev => ({
+          ...prev,
+          [key]: bidHash
+        }))
+
+        console.log('✅ Bid transaction confirmed successfully!')
+        console.log('📝 Stored transaction hash:', bidHash, 'for bid:', key)
+
+        setPendingBidParams(null)
+      }
     }
   }, [isBidSuccess, bidHash, pendingBidParams])
 
@@ -339,7 +344,7 @@ export function usePlaceBid() {
     estimateGasForBid,
     isApproving: isApproving || isApprovePending || isApproveConfirming,
     isBidding: isBidding || isBidPending || isBidConfirming,
-    isSuccess: isBidSuccess,
+    isSuccess: localIsSuccess,
     isApproveSuccess,
     error,
     gasEstimate,
@@ -353,6 +358,7 @@ export function usePlaceBid() {
       setBidParamsForEstimate(null)
       setPendingBidParams(null)
       setCurrentTokenForAllowance(null)
+      setLocalIsSuccess(false)
     },
   }
 }

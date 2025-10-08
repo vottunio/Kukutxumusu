@@ -160,9 +160,8 @@ export function usePlaceBid() {
         functionName: 'approve',
         args: [PAYMENT_CONTRACT_ADDRESS, approveAmount],
         chainId: baseSepolia.id,
-        // Configuración de gas optimizada
+        // Dejar que wagmi estime el gas automáticamente
         ...baseGasConfig,
-        gas: 100000n, // Aprobar es una operación simple
       })
 
       return true
@@ -203,9 +202,8 @@ export function usePlaceBid() {
         ],
         value: isNativeETH ? amount : 0n, // Enviar ETH si es nativo
         chainId: baseSepolia.id,
-        // Configuración de gas optimizada
+        // Dejar que wagmi estime el gas automáticamente
         ...baseGasConfig,
-        gas: gasEstimate ? gasEstimate + (gasEstimate * 20n / 100n) : 400000n, // +20% buffer o 400k por defecto
       })
 
       return true

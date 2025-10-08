@@ -137,7 +137,11 @@ export default function ExplorePage() {
 }
 
 function NFTCard({ nft }: { nft: NFT }) {
-  const imageUrl = nft.metadata.image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+  // Convert IPFS URI to HTTP gateway URL if needed
+  let imageUrl = nft.metadata.image
+  if (imageUrl && imageUrl.startsWith('ipfs://')) {
+    imageUrl = imageUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300">

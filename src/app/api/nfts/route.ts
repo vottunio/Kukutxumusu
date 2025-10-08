@@ -91,13 +91,30 @@ export async function GET(request: Request) {
         let metadata = null
         if (tokenURI) {
           try {
-            const metadataUrl = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+            // Convert IPFS URI to HTTP gateway URL
+            let metadataUrl = tokenURI
+            if (tokenURI.startsWith('ipfs://')) {
+              metadataUrl = tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+            }
+            // If it already has a gateway URL, use it as-is
+
             const metadataResponse = await fetch(metadataUrl)
             if (metadataResponse.ok) {
               metadata = await metadataResponse.json()
             }
           } catch (error) {
             console.error(`Error fetching metadata for token ${tokenId}:`, error)
+          }
+        }
+
+        // Clean tokenURI for fallback image (remove duplicate ipfs://)
+        let fallbackImageUrl = null
+        if (tokenURI) {
+          let cleanedURI = tokenURI.replace(/^ipfs:\/\/ipfs:\/\//, 'ipfs://') // Fix double ipfs://
+          if (cleanedURI.startsWith('ipfs://')) {
+            fallbackImageUrl = cleanedURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+          } else if (cleanedURI.startsWith('http')) {
+            fallbackImageUrl = cleanedURI
           }
         }
 
@@ -108,7 +125,7 @@ export async function GET(request: Request) {
           metadata: metadata || {
             name: `Adarbakar #${tokenId}`,
             description: 'Metadata not available',
-            image: tokenURI ? tokenURI.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/') : null,
+            image: fallbackImageUrl,
           },
         }
       } catch (error) {

@@ -5,7 +5,7 @@
 
 import { createWalletClient, createPublicClient, http, parseAbi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { odysseyTestnet } from 'viem/chains'
+import { defineChain } from 'viem'
 import { prisma } from '../lib/prisma'
 // import { MintStatus, NFTStatus, AuctionStatus } from '@prisma/client'
 
@@ -26,17 +26,35 @@ if (!RELAYER_PRIVATE_KEY) {
   throw new Error('RELAYER_PRIVATE_KEY not set')
 }
 
+// Define Story Aeneid Testnet
+const storyAeneid = defineChain({
+  id: 1315,
+  name: 'Story Aeneid Testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'IP',
+    symbol: 'IP',
+  },
+  rpcUrls: {
+    default: { http: [STORY_RPC_URL] },
+  },
+  blockExplorers: {
+    default: { name: 'Story Explorer', url: 'https://aeneid.storyscan.xyz' },
+  },
+  testnet: true,
+})
+
 // Create Story Protocol clients
 const account = privateKeyToAccount(RELAYER_PRIVATE_KEY)
 
 const publicClient = createPublicClient({
-  chain: odysseyTestnet,
+  chain: storyAeneid,
   transport: http(STORY_RPC_URL),
 })
 
 const walletClient = createWalletClient({
   account,
-  chain: odysseyTestnet,
+  chain: storyAeneid,
   transport: http(STORY_RPC_URL),
 })
 

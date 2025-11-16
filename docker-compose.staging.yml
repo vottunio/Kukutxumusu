@@ -32,8 +32,21 @@ services:
 
   # Frontend Next.js (staging)
   frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID}
+        - NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS=${NEXT_PUBLIC_PAYMENT_CONTRACT_ADDRESS}
+        - NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=${NEXT_PUBLIC_NFT_CONTRACT_ADDRESS}
+        - NEXT_PUBLIC_NETWORK_MODE=${NEXT_PUBLIC_NETWORK_MODE}
+        - NEXT_PUBLIC_BASE_RPC_URL=${NEXT_PUBLIC_BASE_RPC_URL}
+        - NEXT_PUBLIC_STORY_RPC_URL=${NEXT_PUBLIC_STORY_RPC_URL}
+        - TRUSTED_SIGNER_PRIVATE_KEY=${TRUSTED_SIGNER_PRIVATE_KEY}
     image: kukuxumusu-frontend:staging
     container_name: kukuxumusu-frontend-staging
+    env_file:
+      - .env.staging
     environment:
       - NODE_ENV=staging
       - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_staging@postgres:5432/kukuxumusu?sslmode=disable
@@ -62,8 +75,13 @@ services:
 
   # Worker Node.js (Event Listener + Mint Executor)
   worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
     image: kukuxumusu-worker:staging
     container_name: kukuxumusu-worker-staging
+    env_file:
+      - .env.staging
     environment:
       - NODE_ENV=staging
       - DATABASE_URL=postgres://kukuxumusu:kukuxumusu_staging@postgres:5432/kukuxumusu?sslmode=disable

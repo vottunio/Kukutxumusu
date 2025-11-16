@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Deshabilitar SSG/SSR para evitar errores de build con WalletConnect
+  output: 'standalone',
+
   // Excluir worker/ del build
   typescript: {
     ignoreBuildErrors: false,

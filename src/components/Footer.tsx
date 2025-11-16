@@ -214,13 +214,43 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-600">
               <span>Powered by</span>
-              <Image
-                src="/images/Vector.png"
-                alt="Vottun"
-                width={80}
-                height={24}
-                className="object-contain md:w-[100px] md:h-[30px]"
-              />
+              <a
+                href="https://vottun.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Vottun"
+              >
+                <Image
+                  src="/images/Vector.png"
+                  alt="Vottun"
+                  width={80}
+                  height={24}
+                  className="object-contain md:w-[100px] md:h-[30px]"
+                />
+              </a>
+              {/* Extra partner logo: stacked mark (logo + wordmark) */}
+              <a
+                href="https://www.dragonstake.io/es"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="DragonStake"
+                className="flex flex-col items-center justify-center gap-1"
+              >
+                <Image
+                  src="/images/Logo_naranja.svg"
+                  alt="DragonStake Logo"
+                  width={28}
+                  height={28}
+                  className="object-contain md:w-[34px] md:h-[34px]"
+                />
+                <Image
+                  src="/images/Letras_negras.svg"
+                  alt="DragonStake Wordmark"
+                  width={92}
+                  height={16}
+                  className="object-contain md:w-[110px] md:h-[18px]"
+                />
+              </a>
             </div>
           </div>
         </div>

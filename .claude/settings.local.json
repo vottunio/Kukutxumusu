@@ -22,7 +22,9 @@
       "Bash(ssh-keygen:*)",
       "Read(//c/Users/smias/.ssh/**)",
       "Bash(git remote set-url:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
